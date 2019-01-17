@@ -10,6 +10,8 @@ import Control.Applicative
 import Data.Vector hiding (takeWhile, (++))
 import Prelude hiding (takeWhile)
 
+--gaussianLogTDDFTAllStates :: [Int]
+
 -- | From the whole Gaussian output, parse a single excited state and skip over all other parts
 gaussianLogTDDFTSingleState :: Int -> Parser ExcState
 gaussianLogTDDFTSingleState nState' = do
@@ -66,6 +68,13 @@ gaussianLogTDDFTSingleState nState' = do
           ]
       , _coeff = coeff'
       }
+  _ <- option "" $ do
+    _ <- string " This state for optimization and/or second-order correction."
+    _ <- takeWhile (not <$> isEndOfLine)
+    endOfLine
+    _ <- takeWhile (not <$> isEndOfLine)
+    endOfLine
+    return ""
   return ExcState
     { _nState             = nState'
     , _multiplicity       = Nothing
