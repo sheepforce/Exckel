@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 9f658787bdd3f985a64582d59b248fde135a579823b54e24efefc20e79f22e6c
+-- hash: a9910ff690cf8e108c1594d61334d9798835363d56372fde9749b6fd50670afe
 
 name:           Exckel
 version:        0.0.1.0
@@ -26,6 +26,7 @@ source-repository head
 
 library
   exposed-modules:
+      Exckel.Parser.Gaussian
       Exckel.Types
   other-modules:
       Paths_Exckel
@@ -35,6 +36,8 @@ library
       attoparsec >=0.13.2.2
     , base >=4.7 && <5
     , microlens-platform >=0.3.11
+    , pandoc >=2.5
+    , pandoc-types >=1.17.5.4
     , text >=1.2.3.1
     , vector >=0.12.0.2
   default-language: Haskell2010
