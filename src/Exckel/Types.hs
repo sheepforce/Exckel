@@ -14,6 +14,7 @@ module Exckel.Types
 , CIDeterminant(..)
 , excitationPairs
 , coeff
+, WFType(..)
 , ExcState(..)
 , nState
 , multiplicity
