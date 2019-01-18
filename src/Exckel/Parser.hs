@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Exckel.Parser
 ( gaussianLogTDDFT
 ) where

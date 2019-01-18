@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: f4973bca90c951bc841c8c2d0aac58946d5277430572f6339fc1055583a17c9b
+-- hash: 5731a95a649a73ef00b169d918e35351f077b9a17549c2d1a2f49195752af6a7
 
 name:           Exckel
 version:        0.0.1.0
@@ -26,12 +26,14 @@ source-repository head
 
 library
   exposed-modules:
+      Exckel.DocumentCreator
       Exckel.Parser
       Exckel.Types
   other-modules:
       Paths_Exckel
   hs-source-dirs:
       src
+  default-extensions: OverloadedStrings
   build-depends:
       attoparsec >=0.13.2.2
     , base >=4.7 && <5
