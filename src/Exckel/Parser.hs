@@ -33,9 +33,12 @@ gaussianLogTDDFT = do
     _ <- char ':'
     skipSpace
     -- spin and symmetry label "x.xxx-A" or something like "Singlet-A"
+    _ <- manyTill anyChar (char ' ')
+    {-
     _ <- (show <$> double) <|> (many1 letter)
     _ <- char '-'
     _ <- many1 (letter <|> digit)
+    -}
     skipSpace
     -- energy in eV "x.xxxx eV"
     energyElectronVolt' <- double
