@@ -16,13 +16,35 @@ import qualified Data.ByteString.Lazy as B
 import qualified Data.Text as T
 
 
-excitationTable :: ExcState -> Pandoc
-excitationTable es = setTitle title $ doc $
+excitationTable :: [ExcState] -> Pandoc
+excitationTable es =
+    (setTitle title)
+  $ doc $
      para "Hey, this is just a pandoc test"
   <> para "It's a sheep!"
+  <> table
+       "Excited state summary" -- caption
+       -- column alignments and width
+       [ (AlignCenter, 0.1)    -- state number
+       , (AlignCenter, 0.4)    -- orbital pairs
+       , (AlignRight, 0.2)     -- weight
+       , (AlignRight, 0.1)     -- energy
+       , (AlignRight, 0.1)     -- wavelength
+       , (AlignRight, 0.1)     -- oscillator strength
+       ]
+       -- heading of the table
+       [ header 1 "State"
+       , header 1 "Transition"
+       , header 1 "Weight / %"
+       , header 1 "E / eV"
+       , header 1 "λ / nm"
+       , header 1 "f_osc"
+       ]
+       [replicate 5 (para "Hey")
+       ]
   where
     title :: Many Inline
-    title = fromList [Str ("Excited State" ++ show (es ^. nState))]
+    title = fromList [Str ("Excited State")]
 
 ----------------------------------------------------------------------------------------------------
 -- Testing Pandoc functionality
@@ -31,7 +53,8 @@ excitationTable es = setTitle title $ doc $
 
 testDoc :: Pandoc
 testDoc = setTitle "Test Document" $ doc $
-  para "Hey, this is just a pandoc test"
+     para "Hey, this is just a pandoc test"
+  <> para "And this is a sheep"
 
 
 testPan :: IO (Either PandocError B.ByteString)
