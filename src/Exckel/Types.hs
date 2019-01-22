@@ -23,10 +23,27 @@ module Exckel.Types
 , relEnergy
 , oscillatorStrength
 , ciWavefunction
+, CubeGenerator(..)
+, cgExePath
+, cgWavefunctionFile
+, cgLogFile
+, CubePlotter(..)
+, cpExePath
+, cpStateFile
+, FileInfo(..)
+, logFile
+, waveFunctionFile
+, cubeGenerator
+, cubePlotter
+, outputPrefix
 ) where
 import           Data.Vector
 import           Lens.Micro.Platform
+import           System.IO
 
+----------------------------------------------------------------------------------------------------
+-- Wavefunction data types
+----------------------------------------------------------------------------------------------------
 data Spin = Alpha | Beta deriving (Eq, Show)
 
 -- | Define an excitation pair in a CI determinant
@@ -65,3 +82,52 @@ data ExcState = ExcState
   , _ciWavefunction     :: Vector CIDeterminant
   } deriving (Show)
 makeLenses ''ExcState
+
+----------------------------------------------------------------------------------------------------
+-- File system data type for interaction with external world
+----------------------------------------------------------------------------------------------------
+-- | Programm to calculate cubes from fchk or molden files
+data CubeGenerator =
+    MultiWFN
+      { _cgExePath          :: FilePath
+      , _cgWavefunctionFile :: FilePath
+      , _cgLogFile          :: FilePath
+      }
+{-
+  | CubeGen
+      { _cgExePath          :: FilePath
+      , _cgWavefunctionFile :: FilePath
+      }
+  | OrcaPlot
+      { _cgExePath          :: FilePath
+      , _cgWavefunctionFile :: FilePath
+      }
+-}
+  deriving (Eq, Show)
+makeLenses ''CubeGenerator
+
+-- | Programm to plot a set of cube files
+data CubePlotter =
+    VMD
+      { _cpExePath   :: FilePath
+      , _cpStateFile :: Maybe FilePath
+      }
+{-
+  | Chimera
+      { _cpExePath :: FilePath
+      , _cpStateFile :: Maybe FilePath
+      }
+-}
+  deriving (Eq, Show)
+makeLenses ''CubePlotter
+
+-- | FilePaths to files, preferably absolute paths.
+data FileInfo = FileInfo
+  { _logFile          :: Maybe FilePath
+  , _waveFunctionFile :: FilePath
+  , _cubeGenerator    :: CubeGenerator
+  , _cubePlotter      :: CubePlotter
+  , _outputPrefix     :: FilePath
+  }
+  deriving (Eq, Show)
+makeLenses ''FileInfo

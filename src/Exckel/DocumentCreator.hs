@@ -13,14 +13,14 @@ import qualified Data.Text              as T
 import qualified Data.Vector            as V
 import           Exckel.Types
 import           Lens.Micro.Platform
-import           Text.Pandoc
-import           Text.Pandoc.Builder
+import           Text.Pandoc hiding (FileInfo)
+import           Text.Pandoc.Builder hiding (FileInfo)
 import           Text.Printf
 
 -- | This generates a Pandoc document as a summary of an excited state calculation. It takes a
 -- | (possibly filtered) list of excited states to summarise in a document.
-excitationSummary :: [ExcState] -> Pandoc
-excitationSummary es =
+excitationSummary :: FileInfo -> [ExcState] -> Pandoc
+excitationSummary fi es =
     (setTitle title)
   $ doc $
       table
@@ -61,8 +61,8 @@ excitationSummary es =
                  , para . text . printf "%4.2F" . (* 27.11386020) $ e ^. relEnergy
                  , para . text . printf "%4.1F" . (1239.84197386209 /) . (* 27.11386020) $ e ^. relEnergy
                  , para . text . printf "%6.4F" $ e ^. oscillatorStrength
-                 , para $ imageWith ("", ["align-left"], [("width", "2cm")]) "hole97.png" "" (text "hole 97")
-                 , para $ imageWith ("", ["align-left"], [("width", "2cm")]) "hole97.png" "" (text "hole 97")
+                 , para $ imageWith ("", ["align-left"], [("width", "2.5cm")]) "hole97.png" "" (text "hole 97")
+                 , para $ imageWith ("", ["align-left"], [("width", "2.5cm")]) "hole97.png" "" (text "hole 97")
                  ]
           ) excStates
     -- fill single line in a transition block, which constructs an CI determinant (CIS has single
