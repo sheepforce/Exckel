@@ -87,6 +87,7 @@ excitationTable es =
     -- for a CI determinant give the weight in the complete CI wavefunction
     weightEntry :: CIDeterminant -> String
     weightEntry ciD = printf "%6.4F"(ciD ^. coeff)
+    -- line by line the weights of the CI determinants in the CI wavefunction
     manyWeightEntry :: V.Vector CIDeterminant -> Blocks
     manyWeightEntry ciDs = lineBlock . map text . V.toList . V.map weightEntry $ ciDs
 
