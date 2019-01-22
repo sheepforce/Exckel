@@ -96,7 +96,7 @@ gaussianLogTDDFT = do
       , _multiplicity       = Just multiplicity'
       , _wfType             = wfType'
       , _s2                 = Just s2'
-      , _relEnergy          = energyElectronVolt'
+      , _relEnergy          = energyElectronVolt' / 27.21138602
       , _oscillatorStrength = oscillatorStrength'
       , _ciWavefunction     = V.fromList ciWavefunction'
       }

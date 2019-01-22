@@ -49,11 +49,11 @@ excitationTable es =
     tableContents :: [ExcState] -> [[Blocks]]
     tableContents excStates =
       map (\e -> [ para . text . show $ e ^. nState
-                 , para . text . concat . V.toList . V.map ciEntry $ (e ^. ciWavefunction)
+                 , manyCIEntry (e ^. ciWavefunction)
                  , para . text $ "Placeholder weight"
                  , para . text . printf "%4.2F" . (* 27.11386020) $ e ^. relEnergy
-                 , para . text . show . (1239.84197386209 /) . (* 27.11386020) $ e ^. relEnergy
-                 , para . text . show $ e ^. oscillatorStrength
+                 , para . text . printf "%4.2F" . (1239.84197386209 /) . (* 27.11386020) $ e ^. relEnergy
+                 , para . text . printf "%6.4F" $ e ^. oscillatorStrength
                  ]
           ) excStates
     ciEntry :: CIDeterminant -> String
@@ -70,9 +70,11 @@ excitationTable es =
         (case (x ^. toOrb . _2) of
           Just s  -> if s == Alpha then "A" else "B"
           Nothing -> ""
-        ) ++
-        "\n"
+        )
       ) $ ciD ^. excitationPairs
+    manyCIEntry :: V.Vector CIDeterminant -> Blocks
+    manyCIEntry ciDs = lineBlock . map (text) . V.toList . V.map ciEntry $ ciDs
+
 
 
 ----------------------------------------------------------------------------------------------------
