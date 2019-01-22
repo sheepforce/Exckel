@@ -44,18 +44,23 @@ excitationTable es =
        ]
        (tableContents es)
   where
+    -- title of the Pandoc document
     title :: Many Inline
     title = fromList [Str ("Excited State")]
+    -- create the [[Blocks]] scheme (rows first, columns second) required for the Pandoc table from
+    -- excited state output
     tableContents :: [ExcState] -> [[Blocks]]
     tableContents excStates =
       map (\e -> [ para . text . show $ e ^. nState
                  , manyCIEntry (e ^. ciWavefunction)
-                 , para . text $ "Placeholder weight"
+                 , manyWeightEntry (e ^. ciWavefunction)
                  , para . text . printf "%4.2F" . (* 27.11386020) $ e ^. relEnergy
                  , para . text . printf "%4.2F" . (1239.84197386209 /) . (* 27.11386020) $ e ^. relEnergy
                  , para . text . printf "%6.4F" $ e ^. oscillatorStrength
                  ]
           ) excStates
+    -- fill single line in a transition block, which constructs an CI determinant (CIS has single
+    -- pair per line, CID has two pairs per line and so on)
     ciEntry :: CIDeterminant -> String
     ciEntry ciD =
       concatMap (\x ->
@@ -70,10 +75,20 @@ excitationTable es =
         (case (x ^. toOrb . _2) of
           Just s  -> if s == Alpha then "A" else "B"
           Nothing -> ""
-        )
+        ) ++
+        if (length (ciD ^. excitationPairs) > 1)
+          then " & "
+          else ""
       ) $ ciD ^. excitationPairs
+    -- CI wavefunction written by individual CI determinants (one per line), each line is a CI
+    -- determinant
     manyCIEntry :: V.Vector CIDeterminant -> Blocks
-    manyCIEntry ciDs = lineBlock . map (text) . V.toList . V.map ciEntry $ ciDs
+    manyCIEntry ciDs = lineBlock . map text . V.toList . V.map ciEntry $ ciDs
+    -- for a CI determinant give the weight in the complete CI wavefunction
+    weightEntry :: CIDeterminant -> String
+    weightEntry ciD = printf "%6.4F"(ciD ^. coeff)
+    manyWeightEntry :: V.Vector CIDeterminant -> Blocks
+    manyWeightEntry ciDs = lineBlock . map text . V.toList . V.map weightEntry $ ciDs
 
 
 
