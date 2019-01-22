@@ -17,31 +17,35 @@ import           Text.Pandoc
 import           Text.Pandoc.Builder
 import           Text.Printf
 
-
-excitationTable :: [ExcState] -> Pandoc
-excitationTable es =
+-- | This generates a Pandoc document as a summary of an excited state calculation. It takes a
+-- | (possibly filtered) list of excited states to summarise in a document.
+excitationSummary :: [ExcState] -> Pandoc
+excitationSummary es =
     (setTitle title)
   $ doc $
-     para "Hey, this is just a pandoc test"
-  <> para "It's a sheep!"
-  <> table
+      table
        "Excited state summary" -- caption
        -- column alignments and width
        [ (AlignCenter, 0.1)    -- state number
-       , (AlignCenter, 0.4)    -- orbital pairs
-       , (AlignRight, 0.2)     -- weight
+       , (AlignCenter, 0.2)    -- orbital pairs
+       , (AlignRight, 0.1)     -- weight
        , (AlignRight, 0.1)     -- energy
        , (AlignRight, 0.1)     -- wavelength
        , (AlignRight, 0.1)     -- oscillator strength
+       , (AlignCenter, 0.15)   -- hole
+       , (AlignCenter, 0.15)   -- electron
        ]
-       -- heading of the tablem user "headerWith"
+       -- heading of the table
        [ header 1 "State"
        , header 1 "Transition"
        , header 1 "Weight / %"
        , header 1 "E / eV"
        , header 1 "λ / nm"
        , header 1 "f_osc"
+       , header 1 "hole"
+       , header 1 "electron"
        ]
+       -- generated summary for excitations
        (tableContents es)
   where
     -- title of the Pandoc document
@@ -55,8 +59,10 @@ excitationTable es =
                  , manyCIEntry (e ^. ciWavefunction)
                  , manyWeightEntry (e ^. ciWavefunction)
                  , para . text . printf "%4.2F" . (* 27.11386020) $ e ^. relEnergy
-                 , para . text . printf "%4.2F" . (1239.84197386209 /) . (* 27.11386020) $ e ^. relEnergy
+                 , para . text . printf "%4.1F" . (1239.84197386209 /) . (* 27.11386020) $ e ^. relEnergy
                  , para . text . printf "%6.4F" $ e ^. oscillatorStrength
+                 , para $ imageWith ("", ["align-left"], [("width", "2cm")]) "hole97.png" "" (text "hole 97")
+                 , para $ imageWith ("", ["align-left"], [("width", "2cm")]) "hole97.png" "" (text "hole 97")
                  ]
           ) excStates
     -- fill single line in a transition block, which constructs an CI determinant (CIS has single
