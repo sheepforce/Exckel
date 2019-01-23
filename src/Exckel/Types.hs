@@ -25,8 +25,6 @@ module Exckel.Types
 , ciWavefunction
 , CubeGenerator(..)
 , cgExePath
-, cgWavefunctionFile
-, cgLogFile
 , CubePlotter(..)
 , cpExePath
 , cpStateFile
@@ -90,13 +88,10 @@ makeLenses ''ExcState
 data CubeGenerator =
     MultiWFN
       { _cgExePath          :: FilePath
-      , _cgWavefunctionFile :: FilePath
-      , _cgLogFile          :: FilePath
       }
 {-
   | CubeGen
       { _cgExePath          :: FilePath
-      , _cgWavefunctionFile :: FilePath
       }
   | OrcaPlot
       { _cgExePath          :: FilePath
