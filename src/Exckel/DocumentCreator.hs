@@ -13,8 +13,8 @@ import qualified Data.Text              as T
 import qualified Data.Vector            as V
 import           Exckel.Types
 import           Lens.Micro.Platform
-import           Text.Pandoc hiding (FileInfo)
-import           Text.Pandoc.Builder hiding (FileInfo)
+import           Text.Pandoc            hiding (FileInfo)
+import           Text.Pandoc.Builder    hiding (FileInfo)
 import           Text.Printf
 
 -- | This generates a Pandoc document as a summary of an excited state calculation. It takes a

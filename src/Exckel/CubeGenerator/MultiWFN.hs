@@ -2,13 +2,13 @@ module Exckel.CubeGenerator.MultiWFN
 ( calculateOrbs
 , calculateCDDs
 ) where
-import Exckel.Types
-import System.Process
-import System.IO
-import Lens.Micro.Platform
-import System.Directory
-import Control.Monad
-import Text.Printf
+import           Control.Monad
+import           Exckel.Types
+import           Lens.Micro.Platform
+import           System.Directory
+import           System.IO
+import           System.Process
+import           Text.Printf
 
 -- | Given the file system informations, create orbital cubes for the relevant orbitals (given by
 -- | indices) and rename them to orbN.cube
