@@ -10,12 +10,16 @@ module Exckel.DocumentCreator
 import           Control.Monad.IO.Class
 import qualified Data.ByteString.Lazy   as B
 import qualified Data.Text              as T
+import qualified Data.Text.IO           as T -- remove later
 import qualified Data.Vector            as V
 import           Exckel.Types
 import           Lens.Micro.Platform
 import           Text.Pandoc            hiding (FileInfo)
 import           Text.Pandoc.Builder    hiding (FileInfo)
 import           Text.Printf
+import           Data.Attoparsec.Text -- remove later
+-- import Data.Either -- remove later
+import Exckel.Parser -- remove later
 
 -- | This generates a Pandoc document as a summary of an excited state calculation. It takes a
 -- | (possibly filtered) list of excited states to summarise in a document.
@@ -28,8 +32,8 @@ excitationSummary fi es =
        -- column alignments and width
        [ (AlignCenter, 0.1)    -- state number
        , (AlignCenter, 0.2)    -- orbital pairs
-       , (AlignRight, 0.1)     -- weight
-       , (AlignRight, 0.1)     -- energy
+       , (AlignRight, 0.125)   -- weight
+       , (AlignRight, 0.075)   -- energy
        , (AlignRight, 0.1)     -- wavelength
        , (AlignRight, 0.1)     -- oscillator strength
        , (AlignCenter, 0.15)   -- hole
@@ -61,8 +65,8 @@ excitationSummary fi es =
                  , para . text . printf "%4.2F" . (* 27.11386020) $ e ^. relEnergy
                  , para . text . printf "%4.1F" . (1239.84197386209 /) . (* 27.11386020) $ e ^. relEnergy
                  , para . text . printf "%6.4F" $ e ^. oscillatorStrength
-                 , para $ imageWith ("", ["align-left"], [("width", "2.5cm")]) "hole97.png" "" (text "hole 97")
-                 , para $ imageWith ("", ["align-left"], [("width", "2.5cm")]) "hole97.png" "" (text "hole 97")
+                 , para $ imageWith ("", ["align-left"], [("width", "2.5cm")]) "/data/WiP/Dev/Exckel/TestFiles/hole97.png" "" (text "hole 97")
+                 , para $ imageWith ("", ["align-left"], [("width", "2.5cm")]) "/data/WiP/Dev/Exckel/TestFiles/hole97.png" "" (text "hole 97")
                  ]
           ) excStates
     -- fill single line in a transition block, which constructs an CI determinant (CIS has single
@@ -102,26 +106,27 @@ excitationSummary fi es =
 ----------------------------------------------------------------------------------------------------
 -- Testing Pandoc functionality
 ----------------------------------------------------------------------------------------------------
-testDoc :: Pandoc
-testDoc = setTitle "Test Document" $ doc $
-     para "Hey, this is just a pandoc test"
-  <> para "And this is a sheep"
-
+fromRight :: Either a b -> b
+fromRight (Right x) = x
 
 testPan :: IO (Either PandocError B.ByteString)
 testPan = runIO $ do
-    setUserDataDir (Just "/user/seeber/Downloads/pandoc-master/data")
-    dataDir <- getUserDataDir
-    case dataDir of
-      Just d  -> liftIO . putStrLn $ "Data directory is: " ++ show dataDir
-      Nothing -> liftIO . putStrLn $ "Could not get a data directory"
-    odtTemplate <- getDefaultTemplate "odt"
-    writeODT def { writerTemplate = Just odtTemplate} testDoc
+  testOutput <- liftIO $ T.readFile "/data/WiP/Dev/Exckel/TestFiles/RuPt_DFT_EXC-SPE.log"
+  let excitedStates = fromRight $ parseOnly gaussianLogTDDFT testOutput
+      excitedDocument = excitationSummary undefined [ excitedStates !! i | i <- [0,2,3,4,5]]
+  setUserDataDir (Just "/user/seeber/Downloads/pandoc-master/data")
+  dataDir <- getUserDataDir
+  case dataDir of
+    Just d  -> liftIO . putStrLn $ "Data directory is: " ++ show dataDir
+    Nothing -> liftIO . putStrLn $ "Could not get a data directory"
+  odtTemplate <- getDefaultTemplate "odt"
+  -- writeODT def { writerTemplate = Just odtTemplate} excitedDocument
+  writeDocx def {writerReferenceDoc = Just "/data/WiP/Dev/Exckel/TestFiles/Test.docx"} excitedDocument
 
 
-testIt :: ExcState -> IO ()
-testIt es = do
+testIt :: IO ()
+testIt = do
   pandocWriteResult <- testPan
   case pandocWriteResult of
-    Right r -> B.writeFile "/user/seeber/Test.odt" r
+    Right r -> B.writeFile "/user/seeber/Test.docx" r
     Left _  -> putStrLn "Oi, something went wrong"
