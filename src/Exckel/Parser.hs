@@ -1,5 +1,7 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Exckel.Parser
 ( gaussianLogTDDFT
+, vmdState
 ) where
 import           Control.Applicative
 import           Data.Attoparsec.Text
@@ -10,7 +12,8 @@ import           Lens.Micro.Platform
 import           Prelude              hiding (takeWhile)
 import           Text.Printf
 
--- | From the whole Gaussian output, parse a single excited state and skip over all other parts
+-- | From the whole Gaussian TDDFT output, parse all single excited state and skip over all other
+-- | parts
 gaussianLogTDDFT :: Parser [ExcState]
 gaussianLogTDDFT = do
   -- multiplicity
@@ -101,3 +104,11 @@ gaussianLogTDDFT = do
       , _ciWavefunction     = V.fromList ciWavefunction'
       }
   return states'
+
+-- | take a VMD state file and parse the part of it, which gives orientation of the molecule
+-- | relative to the camera (perspective)
+vmdState :: Parser T.Text
+vmdState = do
+  _ <- manyTill anyChar (string "set viewpoints")
+  viewPoint <- T.pack <$> manyTill anyChar (string "foreach v $fixedlist {")
+  return viewPoint
