@@ -25,15 +25,30 @@ module Exckel.Types
 , ciWavefunction
 , CubeGenerator(..)
 , cgExePath
+, ImageFormat(..)
+, Renderer(..)
+, rExePath
+, rResolution
+, rImageFormat
 , CubePlotter(..)
 , cpExePath
 , cpStateFile
+, cpTemplate
+, cpRenderer
+, cpStartUp
+, CubeFiles(..)
+, orbCubes
+, cddCubes
+, electronCubes
+, holeCubes
 , FileInfo(..)
 , logFile
 , waveFunctionFile
 , cubeGenerator
 , cubePlotter
 , outputPrefix
+, cubeFiles
+, imConvertExePath
 ) where
 import           Data.Vector
 import           Lens.Micro.Platform
@@ -101,11 +116,27 @@ data CubeGenerator =
   deriving (Eq, Show)
 makeLenses ''CubeGenerator
 
+-- | Image formats, that might be used throughout the program, especially during rendering
+data ImageFormat = JPG | PNG deriving (Eq, Show)
+
+-- | Rendering engine for orbital plots
+data Renderer =
+    Tachyon
+      { _rExePath     :: FilePath
+      , _rResolution  :: (Int, Int)
+      , _rImageFormat :: ImageFormat
+      }
+  deriving (Eq, Show)
+makeLenses ''Renderer
+
 -- | Programm to plot a set of cube files
 data CubePlotter =
     VMD
       { _cpExePath   :: FilePath
       , _cpStateFile :: Maybe FilePath
+      , _cpTemplate  :: FilePath
+      , _cpRenderer  :: Renderer
+      , _cpStartUp   :: Maybe FilePath
       }
 {-
   | Chimera
@@ -116,13 +147,30 @@ data CubePlotter =
   deriving (Eq, Show)
 makeLenses ''CubePlotter
 
--- | FilePaths to files, preferably absolute paths.
+-- | If cubes are (already) calculated, store the filepaths to all the cubes here. Naming
+-- | conventions of other functions still apply. For a given excited state the cubes are called
+-- | "electron$X.cube" / "hole$X.cube" / "CDD$X.cube", where "$X" is the number of the excited
+-- | state, shown as integer without leading 0 and counting starting from 1. For the orbitals the
+-- | naming convention is "orb$X.cube", where $X is the number of the orbital (starting from 1) and
+-- | alpha and beta orbitals are only distinguished by their numbers (program dependent)
+data CubeFiles = CubeFiles
+  { _orbCubes      :: Maybe [FilePath]
+  , _cddCubes      :: Maybe [FilePath]
+  , _electronCubes :: Maybe [FilePath]
+  , _holeCubes     :: Maybe [FilePath]
+  } deriving (Eq, Show)
+makeLenses ''CubeFiles
+
+-- | FilePaths to files, given in absolute paths! Shall be expanded to absolute paths if only
+-- | specified as relative path during program execution.
 data FileInfo = FileInfo
   { _logFile          :: Maybe FilePath
   , _waveFunctionFile :: FilePath
   , _cubeGenerator    :: CubeGenerator
   , _cubePlotter      :: CubePlotter
   , _outputPrefix     :: FilePath
+  , _cubeFiles        :: CubeFiles
+  , _imConvertExePath :: FilePath
   }
   deriving (Eq, Show)
 makeLenses ''FileInfo

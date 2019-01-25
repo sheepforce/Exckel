@@ -2,6 +2,7 @@
 module Exckel.Parser
 ( gaussianLogTDDFT
 , vmdState
+, vmdRC
 ) where
 import           Control.Applicative
 import           Data.Attoparsec.Text
@@ -112,3 +113,10 @@ vmdState = do
   _ <- manyTill anyChar (string "set viewpoints")
   viewPoint <- T.pack <$> manyTill anyChar (string "foreach v $fixedlist {")
   return viewPoint
+
+-- | Parse a VMD rc file and return everything but the anyoing "after idle {" sourroundings of it
+vmdRC :: Parser T.Text
+vmdRC = do
+  _ <- manyTill anyChar (string "after idle {")
+  helpfulContent <- T.pack <$> manyTill anyChar (string "# </custom>")
+  return helpfulContent
