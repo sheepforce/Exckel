@@ -5,21 +5,21 @@ the excited state informations
 
 {-# LANGUAGE OverloadedStrings #-}
 module Exckel.DocumentCreator
-(
+( excitationSummary
 ) where
 import           Control.Monad.IO.Class
+import           Data.Attoparsec.Text
 import qualified Data.ByteString.Lazy   as B
 import qualified Data.Text              as T
-import qualified Data.Text.IO           as T -- remove later
+import qualified Data.Text.IO           as T
 import qualified Data.Vector            as V
-import           Exckel.Types
+import           Exckel.Types           hiding (def)
 import           Lens.Micro.Platform
 import           Text.Pandoc            hiding (FileInfo)
 import           Text.Pandoc.Builder    hiding (FileInfo)
 import           Text.Printf
-import           Data.Attoparsec.Text -- remove later
 -- import Data.Either -- remove later
-import Exckel.Parser -- remove later
+import           Exckel.Parser
 
 -- | This generates a Pandoc document as a summary of an excited state calculation. It takes a
 -- | (possibly filtered) list of excited states to summarise in a document.

@@ -7,7 +7,8 @@ orbital counting starts from 1, no matter which program is being used.
 
 {-# LANGUAGE TemplateHaskell #-}
 module Exckel.Types
-( Spin(..)
+( Default(..)
+, Spin(..)
 , OrbitalExcitation(..)
 , fromOrb
 , toOrb
@@ -41,8 +42,10 @@ module Exckel.Types
 , cddCubes
 , electronCubes
 , holeCubes
+, CalcSoftware(..)
 , FileInfo(..)
 , logFile
+, calcSoftware
 , waveFunctionFile
 , cubeGenerator
 , cubePlotter
@@ -53,6 +56,13 @@ module Exckel.Types
 import           Data.Vector
 import           Lens.Micro.Platform
 import           System.IO
+import           System.IO.Unsafe
+import Paths_Exckel
+import System.Directory
+import Data.Maybe
+
+class (Default a) where
+  def :: a
 
 ----------------------------------------------------------------------------------------------------
 -- Wavefunction data types
@@ -115,6 +125,10 @@ data CubeGenerator =
 -}
   deriving (Eq, Show)
 makeLenses ''CubeGenerator
+instance (Default CubeGenerator) where
+  def = MultiWFN
+    { _cgExePath = fromMaybe "Multiwfn" $ unsafePerformIO $ findExecutable "Multiwfn"
+    }
 
 -- | Image formats, that might be used throughout the program, especially during rendering
 data ImageFormat = JPG | PNG deriving (Eq, Show)
@@ -128,6 +142,12 @@ data Renderer =
       }
   deriving (Eq, Show)
 makeLenses ''Renderer
+instance (Default Renderer) where
+  def = Tachyon
+    { _rExePath = fromMaybe "tachyon" $ unsafePerformIO $ findExecutable "tachyon"
+    , _rResolution = (2000,1200)
+    , _rImageFormat = PNG
+    }
 
 -- | Programm to plot a set of cube files
 data CubePlotter =
@@ -146,6 +166,14 @@ data CubePlotter =
 -}
   deriving (Eq, Show)
 makeLenses ''CubePlotter
+instance (Default CubePlotter) where
+  def = VMD
+    { _cpExePath = "vmd"
+    , _cpStateFile = Nothing
+    , _cpTemplate = unsafePerformIO $ getDataFileName "VMD.tcl"
+    , _cpRenderer = def
+    , _cpStartUp = Nothing
+    }
 
 -- | If cubes are (already) calculated, store the filepaths to all the cubes here. Naming
 -- | conventions of other functions still apply. For a given excited state the cubes are called
@@ -160,11 +188,22 @@ data CubeFiles = CubeFiles
   , _holeCubes     :: Maybe [FilePath]
   } deriving (Eq, Show)
 makeLenses ''CubeFiles
+instance (Default CubeFiles) where
+  def = CubeFiles
+    { _orbCubes = Nothing
+    , _cddCubes = Nothing
+    , _electronCubes = Nothing
+    , _holeCubes = Nothing
+    }
+
+-- | Quantum chemistry program from which the logfile comes
+data CalcSoftware = Gaussian deriving (Eq, Show)
 
 -- | FilePaths to files, given in absolute paths! Shall be expanded to absolute paths if only
 -- | specified as relative path during program execution.
 data FileInfo = FileInfo
-  { _logFile          :: Maybe FilePath
+  { _logFile          :: FilePath
+  , _calcSoftware     :: CalcSoftware
   , _waveFunctionFile :: FilePath
   , _cubeGenerator    :: CubeGenerator
   , _cubePlotter      :: CubePlotter
@@ -174,3 +213,14 @@ data FileInfo = FileInfo
   }
   deriving (Eq, Show)
 makeLenses ''FileInfo
+instance (Default FileInfo) where
+  def = FileInfo
+    { _logFile = ""
+    , _calcSoftware = Gaussian
+    , _waveFunctionFile = ""
+    , _cubeGenerator = def
+    , _cubePlotter = def
+    , _outputPrefix = "."
+    , _cubeFiles = def
+    , _imConvertExePath = fromMaybe "convert" $ unsafePerformIO $ findExecutable "convert"
+    }

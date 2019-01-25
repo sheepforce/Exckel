@@ -9,6 +9,7 @@ import           System.Directory
 import           System.IO
 import           System.Process
 import           Text.Printf
+import Data.Maybe
 
 -- | Given the file system informations, create orbital cubes for the relevant orbitals (given by
 -- | indices) and rename them to orbN.cube
@@ -68,62 +69,57 @@ calculateOrbs fi orbInds = do
 -- | will cras, if the logfile is a Nothing but print a hint first
 calculateCDDs :: FileInfo -> [Int] -> IO ()
 calculateCDDs fi esN = do
-  case mwfnLog of
-    Just l -> do
-      createDirectoryIfMissing True mwfnOutDir
-      mapM_ (\n -> do
-        (Just mwfnInput, Just mwfnOutput, Just mwfnError, mwfnProcH) <-
-          createProcess (proc mwfnPath [mwfnWFN])
-          { std_out = CreatePipe
-          , std_in = CreatePipe
-          , std_err = CreatePipe
-          , cwd = Just mwfnOutDir
-          }
+  createDirectoryIfMissing True mwfnOutDir
+  mapM_ (\n -> do
+    (Just mwfnInput, Just mwfnOutput, Just mwfnError, mwfnProcH) <-
+      createProcess (proc mwfnPath [mwfnWFN])
+      { std_out = CreatePipe
+      , std_in = CreatePipe
+      , std_err = CreatePipe
+      , cwd = Just mwfnOutDir
+      }
 
-        hSetBuffering mwfnInput LineBuffering
-        hSetBuffering mwfnOutput LineBuffering
-        hSetBuffering mwfnError LineBuffering
+    hSetBuffering mwfnInput LineBuffering
+    hSetBuffering mwfnOutput LineBuffering
+    hSetBuffering mwfnError LineBuffering
 
-        mwfnLogFile <- openFile (mwfnOutDir ++ "/MultiWFN.out") WriteMode
-        mwfnErrFile <- openFile (mwfnOutDir ++ "/MultiWFN.err") WriteMode
-        hSetBuffering mwfnLogFile LineBuffering
-        hSetBuffering mwfnErrFile LineBuffering
+    mwfnLogFile <- openFile (mwfnOutDir ++ "/MultiWFN.out") WriteMode
+    mwfnErrFile <- openFile (mwfnOutDir ++ "/MultiWFN.err") WriteMode
+    hSetBuffering mwfnLogFile LineBuffering
+    hSetBuffering mwfnErrFile LineBuffering
 
-        hPutStrLn mwfnInput "18"  -- Electron excitation analysis
-        hPutStrLn mwfnInput "1"   -- Analyze and visualize hole-electron distribution, ...
-        hPutStrLn mwfnInput $ l
-        hPutStrLn mwfnInput $ show n -- excited state to analyse
-        hPutStrLn mwfnInput "1"   -- Visualize and analyze hole, electron and transition density ...
-        hPutStrLn mwfnInput "3"   -- High quality grid
-        hPutStrLn mwfnInput "10"  -- Output cube file of hole distribution to current folder
-        hPutStrLn mwfnInput "1"   -- Total (local term + cross term)
-        hPutStrLn mwfnInput "11"  -- Output cube file of electron distribution to current folder
-        hPutStrLn mwfnInput "1"   -- Total (local term + cross term)
-        hPutStrLn mwfnInput "15"  -- Output cube file of charge density difference to current folder
-        hPutStrLn mwfnInput "0"   -- Return
-        hPutStrLn mwfnInput "0"   -- Return
-        hPutStrLn mwfnInput "0"   -- Return
-        hPutStrLn mwfnInput "-10" -- hidden option to exit gracefully in the main menu
+    hPutStrLn mwfnInput "18"  -- Electron excitation analysis
+    hPutStrLn mwfnInput "1"   -- Analyze and visualize hole-electron distribution, ...
+    hPutStrLn mwfnInput $ fi ^. logFile
+    hPutStrLn mwfnInput $ show n -- excited state to analyse
+    hPutStrLn mwfnInput "1"   -- Visualize and analyze hole, electron and transition density ...
+    hPutStrLn mwfnInput "3"   -- High quality grid
+    hPutStrLn mwfnInput "10"  -- Output cube file of hole distribution to current folder
+    hPutStrLn mwfnInput "1"   -- Total (local term + cross term)
+    hPutStrLn mwfnInput "11"  -- Output cube file of electron distribution to current folder
+    hPutStrLn mwfnInput "1"   -- Total (local term + cross term)
+    hPutStrLn mwfnInput "15"  -- Output cube file of charge density difference to current folder
+    hPutStrLn mwfnInput "0"   -- Return
+    hPutStrLn mwfnInput "0"   -- Return
+    hPutStrLn mwfnInput "0"   -- Return
+    hPutStrLn mwfnInput "-10" -- hidden option to exit gracefully in the main menu
 
-        mwfnLog <- hGetContents mwfnOutput
-        mwfnErr <- hGetContents mwfnError
+    mwfnLog <- hGetContents mwfnOutput
+    mwfnErr <- hGetContents mwfnError
 
-        hPutStr mwfnLogFile mwfnLog
-        hPutStr mwfnErrFile mwfnErr
+    hPutStr mwfnLogFile mwfnLog
+    hPutStr mwfnErrFile mwfnErr
 
-        hClose mwfnLogFile
-        hClose mwfnErrFile
+    hClose mwfnLogFile
+    hClose mwfnErrFile
 
-        exitCode <- waitForProcess mwfnProcH
-        cleanupProcess (Just mwfnInput, Just mwfnOutput, Just mwfnError, mwfnProcH)
+    exitCode <- waitForProcess mwfnProcH
+    cleanupProcess (Just mwfnInput, Just mwfnOutput, Just mwfnError, mwfnProcH)
 
-        renameFile oldCDDName (newCDDName n)
-        renameFile oldElectronName (newElectronName n)
-        renameFile oldHoleName (newHoleName n)
-            ) esN
-    Nothing -> do
-      putStrLn "You have not specified a log file with excitations (ORCA or Gaussian log)."
-      putStrLn "Cannot proceed without. Therefore doing nothing"
+    renameFile oldCDDName (newCDDName n)
+    renameFile oldElectronName (newElectronName n)
+    renameFile oldHoleName (newHoleName n)
+        ) esN
   where
     mwfnPath = fi ^. cubeGenerator . cgExePath
     mwfnWFN = fi ^. waveFunctionFile
