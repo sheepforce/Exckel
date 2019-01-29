@@ -1,19 +1,19 @@
-import           Data.Attoparsec.Text hiding (take)
+import           Data.Attoparsec.Text          hiding (take)
+import           Data.List
 import           Data.Maybe
 import qualified Data.Text                     as T
 import qualified Data.Text.IO                  as T
 import           Exckel.CmdArgs
 import           Exckel.CubeGenerator.MultiWFN as CG.MWFN
-import Exckel.CubePlotter.VMD as CP.VMD
-import           Exckel.Parser hiding (vmdState)
+import           Exckel.CubePlotter.VMD        as CP.VMD
+import           Exckel.ExcUtils
+import           Exckel.Parser                 hiding (vmdState)
 import           Exckel.Types
 import           Lens.Micro.Platform
 import           Paths_Exckel
 import           System.Console.CmdArgs        hiding (def)
 import           System.Directory
-import           Exckel.ExcUtils
-import Data.List
-import System.FilePath
+import           System.FilePath
 
 -- | Entry point for the executable. Get command line arguments with defaults and call for check and
 -- | from within the check possibly for other routines.
@@ -63,7 +63,7 @@ getExcitedStates a fi = do
     Right eS -> do
       -- here you could potentially filter the excited states
       let eSfilterByS2 = case (s2Filter a) of
-            Nothing -> eS
+            Nothing      -> eS
             Just contrib -> filterByS2 contrib eS
           eSfilterByFOsc = case (foscFilter a) of
             Nothing -> eSfilterByS2

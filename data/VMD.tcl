@@ -11,13 +11,6 @@ set IsoDens 0.002
 # tweak some display settings
 # also possible via vmdrc
 axes location off
-axes location off
-display ambientocclusion on
-display shadows on
-color Element I purple
-color Element Pt silver
-color Element Ru iceblue
-
 
 # start plotting loops
 set Iter 0

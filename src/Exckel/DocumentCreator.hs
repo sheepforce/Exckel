@@ -1,9 +1,8 @@
 {-
 This module creates an internal pandoc representaion of the summary, that shall be generated from
-the excited state informations
+the excited state informations. it uses all available data, which means all correctly named images
+found in the filesystem and writes docx or odt summary documents.
 -}
-
-{-# LANGUAGE OverloadedStrings #-}
 module Exckel.DocumentCreator
 ( excitationSummary
 ) where

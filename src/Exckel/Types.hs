@@ -4,7 +4,6 @@ and call the ground state in given multiplicity X0, the first excited state 1 an
 states are formulated in terms of Configuration Interaction and data types represent this. Also
 orbital counting starts from 1, no matter which program is being used.
 -}
-
 {-# LANGUAGE TemplateHaskell #-}
 module Exckel.Types
 ( Default(..)
@@ -54,13 +53,13 @@ module Exckel.Types
 , cubeFiles
 , imConvertExePath
 ) where
+import           Data.Maybe
 import           Data.Vector
 import           Lens.Micro.Platform
+import           Paths_Exckel
+import           System.Directory
 import           System.IO
 import           System.IO.Unsafe
-import Paths_Exckel
-import System.Directory
-import Data.Maybe
 
 class (Default a) where
   def :: a

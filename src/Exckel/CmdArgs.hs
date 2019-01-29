@@ -1,5 +1,7 @@
 {-
-Data structure for the command line arguments. As many sensible defaults as possible are pro
+Data structure for the command line arguments. As many sensible defaults as possible are provided as
+possible. Many of these values will be fed into the FileInfo data structure during execution of the
+program.
 -}
 
 {-# LANGUAGE DeriveDataTypeable  #-}
@@ -57,7 +59,7 @@ exckelArgs = ExckelArgs
                    &= typFile
 
   , vmdStartUp     =  Nothing
-                   &= help "VMD script to set up general look. Might be your .vmdrc file."
+                   &= help "VMD script to set up general look. If none is specified, it will default to your vmdrc."
                    &= typFile
 
   , vmdTemplate    =  (unsafePerformIO $ getDataFileName "VMD.tcl")

@@ -1,3 +1,6 @@
+{-
+Providing helper functions to calculate some numbers ...
+-}
 module Exckel.ExcUtils
 ( getOrbNumbers
 , gauss

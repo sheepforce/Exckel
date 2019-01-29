@@ -1,4 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-
+Wrapper to VMD. Plot all properly named cubes found on filesystem and render them with tachyon.
+Appearance of the results is determined by 3 files: First, a vmdrc like file is read to set
+everything like in a normal VMD startup. Sets most parameters. Then, optioanally, a state file is
+read to get the perspective and. Last, a TCL template script is loaded and templates replaced
+(filenames of cubes and perspective), fed into VMD and then executed. Tachyon will be called to
+render the images.
+-}
 module Exckel.CubePlotter.VMD
 ( plotCubes
 ) where

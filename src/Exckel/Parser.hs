@@ -1,4 +1,6 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-
+Contains all parsers for quantum chemistry software outputs. Contains also parsers for
+-}
 module Exckel.Parser
 ( gaussianLogTDDFT
 , vmdState
@@ -29,8 +31,8 @@ gaussianLogTDDFT = do
   wfString <- manyTill anyChar (string "shell SCF")
   let wfType' = case (T.words . last . T.lines . T.pack $ wfString) of
        ["UHF", "open"] -> Just OpenShell
-       ["Closed"] -> Just ClosedShell
-       _ -> Nothing
+       ["Closed"]      -> Just ClosedShell
+       _               -> Nothing
   -- parse all excited state blocks
   states' <- many1 $ do
     -- starting string "Excited State   x:"

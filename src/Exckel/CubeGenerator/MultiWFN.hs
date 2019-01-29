@@ -1,3 +1,7 @@
+{-
+Wrapper to MultiWFN. This has been tested only with the Gnu compatibel version 3.4.0 from
+https://github.com/stecue/gMultiwfn/releases .
+-}
 module Exckel.CubeGenerator.MultiWFN
 ( calculateOrbs
 , calculateCDDs
