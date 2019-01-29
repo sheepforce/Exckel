@@ -1,4 +1,5 @@
 import           Data.Attoparsec.Text          hiding (take)
+import           Data.Char
 import           Data.List
 import           Data.Maybe
 import qualified Data.Text                     as T
@@ -6,6 +7,7 @@ import qualified Data.Text.IO                  as T
 import           Exckel.CmdArgs
 import           Exckel.CubeGenerator.MultiWFN as CG.MWFN
 import           Exckel.CubePlotter.VMD        as CP.VMD
+import           Exckel.DocumentCreator
 import           Exckel.ExcUtils
 import           Exckel.Parser                 hiding (vmdState)
 import           Exckel.Types
@@ -14,7 +16,6 @@ import           Paths_Exckel
 import           System.Console.CmdArgs        hiding (def)
 import           System.Directory
 import           System.FilePath
-import Data.Char
 
 -- | Entry point for the executable. Get command line arguments with defaults and call for check and
 -- | from within the check possibly for other routines.
@@ -153,5 +154,14 @@ doSummaryDocument a fi eS = do
       cddFileNumbers = map ((read :: String -> Int) . drop 3 . takeBaseName) $ cddImageFiles
       electronFileNumbers = map ((read :: String -> Int) . drop 8 . takeBaseName) $ electronImageFiles
       holeFileNumbers = map ((read :: String -> Int) . drop 4 . takeBaseName) $ holeImageFiles
-
-  print allImageFiles
+      orbImageFilesIndexed = zip orbFileNumbers orbImageFiles
+      cddImageFilesIndexed = zip cddFileNumbers cddImageFiles
+      electronImageFilesIndexed = zip electronFileNumbers electronImageFiles
+      holeImageFilesIndexed = zip holeFileNumbers holeImageFiles
+      fileInfoWithImages = fi
+        & imageFiles . orbImages .~ Just orbImageFilesIndexed
+        & imageFiles . cddImages .~ Just cddImageFilesIndexed
+        & imageFiles . electronImages .~ Just electronImageFilesIndexed
+        & imageFiles . holeImages .~ Just holeImageFilesIndexed
+  --excitationSummary fileInfoWithImages eS
+  putStrLn "Gey"

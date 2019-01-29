@@ -42,6 +42,11 @@ module Exckel.Types
 , cddCubes
 , electronCubes
 , holeCubes
+, ImageFiles(..)
+, orbImages
+, cddImages
+, electronImages
+, holeImages
 , CalcSoftware(..)
 , FileInfo(..)
 , logFile
@@ -51,6 +56,7 @@ module Exckel.Types
 , cubePlotter
 , outputPrefix
 , cubeFiles
+, imageFiles
 , imConvertExePath
 ) where
 import           Data.Maybe
@@ -201,10 +207,10 @@ instance (Default CubeFiles) where
 -- | functions still apply. See CubeFiles data type for more information. Depending on the chosen
 -- | ImageFormat the suffix might change.
 data ImageFiles = ImageFiles
-  { _orbImages      :: Maybe [FilePath]
-  , _cddImages      :: Maybe [FilePath]
-  , _electronImages :: Maybe [FilePath]
-  , _holeImages     :: Maybe [FilePath]
+  { _orbImages      :: Maybe [(Int, FilePath)]
+  , _cddImages      :: Maybe [(Int, FilePath)]
+  , _electronImages :: Maybe [(Int, FilePath)]
+  , _holeImages     :: Maybe [(Int, FilePath)]
   } deriving (Eq, Show)
 makeLenses ''ImageFiles
 instance (Default ImageFiles) where

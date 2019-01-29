@@ -64,8 +64,12 @@ excitationSummary fi es =
                  , para . text . printf "%4.2F" . (* 27.11386020) $ e ^. relEnergy
                  , para . text . printf "%4.1F" . (1239.84197386209 /) . (* 27.11386020) $ e ^. relEnergy
                  , para . text . printf "%6.4F" $ e ^. oscillatorStrength
-                 , para $ imageWith ("", ["align-left"], [("width", "2.5cm")]) "/data/WiP/Dev/Exckel/TestFiles/hole97.png" "" (text "hole 97")
-                 , para $ imageWith ("", ["align-left"], [("width", "2.5cm")]) "/data/WiP/Dev/Exckel/TestFiles/hole97.png" "" (text "hole 97")
+                 , case (getImageByType fi e holeImages) of
+                     Nothing -> para . text $ ""
+                     Just (nState, imagePath) -> para $ imageWith ("", ["align-left"], [("width", "2.5cm")]) imagePath "" (text . ("hole " ++) . show $ nState)
+                 , case (getImageByType fi e electronImages) of
+                     Nothing -> para . text $ ""
+                     Just (nState, imagePath) -> para $ imageWith ("", ["align-left"], [("width", "2.5cm")]) imagePath "" (text . ("electron " ++) . show $ nState)
                  ]
           ) excStates
     -- fill single line in a transition block, which constructs an CI determinant (CIS has single
@@ -99,6 +103,18 @@ excitationSummary fi es =
     -- line by line the weights of the CI determinants in the CI wavefunction
     manyWeightEntry :: V.Vector CIDeterminant -> Blocks
     manyWeightEntry ciDs = lineBlock . map text . V.toList . V.map weightEntry $ ciDs
+    -- Look for hole image of the excited state. Give the FileInfo type, an excited state and the
+    -- lens for the corresponding image type (from ImageFiles type).
+    getImageByType fi eS lens = case candidates of
+      Nothing -> Nothing
+      Just [] -> Nothing
+      Just x -> Just $ head x
+      where
+        candidates =
+          filter (\x -> (fst x) == (eS ^. nState)) <$>
+          fi ^. imageFiles . lens
+
+
 
 
 
