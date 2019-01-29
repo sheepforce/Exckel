@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8b1adc24d906d5069095fca5fd148c3090f5ba9b9ef0db25f09982499ba3af51
+-- hash: 8c8c7701ab5d6d0fae88a8af1ff362426018ed420dfcab3bb985bd89c6ba3566
 
 name:           Exckel
 version:        0.0.1.0
@@ -31,6 +31,7 @@ library
       Exckel.CubeGenerator.MultiWFN
       Exckel.CubePlotter.VMD
       Exckel.DocumentCreator
+      Exckel.ExcUtils
       Exckel.Parser
       Exckel.Types
   other-modules:
@@ -69,6 +70,7 @@ executable Exckel-exe
     , base >=4.7 && <5
     , cmdargs >=0.10.20
     , directory >=1.3.3.0
+    , filepath >=1.4.2.1
     , microlens-platform >=0.3.11
     , text >=1.2.3.1
   default-language: Haskell2010

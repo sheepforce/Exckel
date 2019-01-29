@@ -1,11 +1,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Exckel.CubePlotter.VMD
-( plotOrbs
+( plotCubes
 ) where
 import           Control.Applicative
 import           Control.Monad.Identity
 import           Data.Attoparsec.Text
 import qualified Data.HashMap.Lazy      as H
+import           Data.List              hiding (length)
+import           Data.Maybe
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as T
 import           Exckel.Parser
@@ -15,12 +17,10 @@ import           System.Directory
 import           System.FilePath
 import           System.IO
 import           System.Process
-import           Text.Ginger hiding (length)
-import Data.List hiding (length)
-import Data.Maybe
+import           Text.Ginger            hiding (length)
 
-plotOrbs :: FileInfo -> IO ()
-plotOrbs fi = do
+plotCubes :: FileInfo -> IO ()
+plotCubes fi = do
   -- If a startup file for vmd is specified, take this one. If not, look for the vmdrc in the home
   -- directory for the vmdrc file and clean it up, so that it can be used. If this also does not
   -- exist, live with the defaults of VMD by writing an empty startup file

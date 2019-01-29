@@ -21,6 +21,10 @@ gaussianLogTDDFT = do
   _ <- manyTill anyChar (string "Multiplicity")
   _ <- string " = "
   multiplicity' <- decimal
+  -- look for number of basis functions as NBsUse=
+  _ <- manyTill anyChar (string "NBsUse=")
+  _ <- takeWhile isHorizontalSpace
+  nBasisFunctions' <- decimal
   -- look for wavefunction type
   wfString <- manyTill anyChar (string "shell SCF")
   let wfType' = case (T.words . last . T.lines . T.pack $ wfString) of
@@ -97,14 +101,16 @@ gaussianLogTDDFT = do
       return ""
     return ExcState
       { _nState             = nState'
-      , _multiplicity       = Just multiplicity'
+      , _multiplicity       = multiplicity'
       , _wfType             = wfType'
       , _s2                 = Just s2'
       , _relEnergy          = energyElectronVolt' / 27.21138602
       , _oscillatorStrength = oscillatorStrength'
       , _ciWavefunction     = V.fromList ciWavefunction'
+      , _nBasisFunctions    = nBasisFunctions'
       }
   return states'
+
 
 -- | take a VMD state file and parse the part of it, which gives orientation of the molecule
 -- | relative to the camera (perspective)

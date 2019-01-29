@@ -24,6 +24,7 @@ module Exckel.Types
 , relEnergy
 , oscillatorStrength
 , ciWavefunction
+, nBasisFunctions
 , CubeGenerator(..)
 , cgExePath
 , ImageFormat(..)
@@ -97,12 +98,13 @@ data WFType = ClosedShell | OpenShell | RestrictedOpenShell deriving (Show)
 -- |   ciWavefunction : the complete CI wavefunction, that forms this state
 data ExcState = ExcState
   { _nState             :: Int
-  , _multiplicity       :: Maybe Int
+  , _multiplicity       :: Int
   , _wfType             :: Maybe WFType
   , _s2                 :: Maybe Double
   , _relEnergy          :: Double
   , _oscillatorStrength :: Double
   , _ciWavefunction     :: Vector CIDeterminant
+  , _nBasisFunctions    :: Int
   } deriving (Show)
 makeLenses ''ExcState
 

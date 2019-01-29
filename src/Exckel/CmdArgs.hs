@@ -9,6 +9,7 @@ module Exckel.CmdArgs
 , exckelArgs
 )
 where
+import           Paths_Exckel
 import           System.Console.CmdArgs
 import           System.Directory
 import           System.IO
@@ -19,6 +20,9 @@ data ExckelArgs = ExckelArgs
   , norenderimages :: Bool
   , outdir         :: FilePath
   , vmd            :: Maybe FilePath
+  , vmdState       :: Maybe FilePath
+  , vmdStartUp     :: Maybe FilePath
+  , vmdTemplate    :: FilePath
   , multiwfn       :: Maybe FilePath
   , tachyon        :: Maybe FilePath
   , docx           :: Bool
@@ -27,6 +31,8 @@ data ExckelArgs = ExckelArgs
   , wf             :: Maybe FilePath
   , exc            :: Maybe FilePath
   , imgres         :: (Int, Int)
+  , s2Filter       :: Maybe Double
+  , foscFilter     :: Maybe Double
   } deriving (Show, Data, Typeable)
 
 exckelArgs = ExckelArgs
@@ -43,7 +49,19 @@ exckelArgs = ExckelArgs
                    &= typDir
 
   , vmd            =  (unsafePerformIO $ findExecutable "vmd")
-                   &= help "VMD executable. Default is first vmd executable found on system"
+                   &= help "VMD executable. Default is first vmd executable found on system."
+                   &= typFile
+
+  , vmdState       =  Nothing
+                   &= help "VMD visualisation state file. Used to determine perspective."
+                   &= typFile
+
+  , vmdStartUp     =  Nothing
+                   &= help "VMD script to set up general look. Might be your .vmdrc file."
+                   &= typFile
+
+  , vmdTemplate    =  (unsafePerformIO $ getDataFileName "VMD.tcl")
+                   &= help "VMD template script for plotting."
                    &= typFile
 
   , multiwfn       =  (unsafePerformIO $ findExecutable "Multiwfn")
@@ -59,7 +77,7 @@ exckelArgs = ExckelArgs
                    &= typ "BOOL"
 
   , odt            =  False
-                   &= help "Write output as docx."
+                   &= help "Write output as odt."
                    &= typ "BOOL"
 
   , docxoutref     =  Nothing
@@ -77,4 +95,12 @@ exckelArgs = ExckelArgs
   , imgres         =  (2000, 1200)
                    &= help "Image width x heigth for plotting of cubes."
                    &= typ "INT,INT"
+
+  , s2Filter       =  Nothing
+                   &= help "Filter excited states by contributions of next higher spin state (applies to plotting and summary)."
+                   &= typ "FLOAT"
+
+  , foscFilter     =  Nothing
+                   &= help "Filter excited states by minimum oscillator strength (applies only to summary document)."
+                   &= typ "FLOAT"
   }
