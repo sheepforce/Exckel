@@ -16,6 +16,11 @@ import           Paths_Exckel
 import           System.Console.CmdArgs        hiding (def)
 import           System.Directory
 import           System.FilePath
+import Text.Pandoc hiding (def, FileInfo)
+import qualified Text.Pandoc as PD (def)
+import           Control.Monad.IO.Class
+import qualified Data.ByteString.Lazy as B
+import Control.Applicative
 
 -- | Entry point for the executable. Get command line arguments with defaults and call for check and
 -- | from within the check possibly for other routines.
@@ -139,6 +144,12 @@ doPlots a fi eS = do
 -- | Use Pandoc to create the summary document, using all pictures that are there by now.
 doSummaryDocument :: ExckelArgs -> FileInfo -> [ExcState] -> IO ()
 doSummaryDocument a fi eS = do
+  absPanDir <- case (pandir a) of
+    Nothing -> return Nothing
+    Just dir -> pure <$> makeAbsolute dir
+  absPanRefDoc <- case (panref a) of
+    Nothing -> return Nothing
+    Just ref -> pure <$> makeAbsolute ref
   outDirContents <- listDirectory (fi ^. outputPrefix)
   allImageFiles <- mapM makeAbsolute $
     map (((fi ^. outputPrefix) ++ [pathSeparator]) ++) .
@@ -150,18 +161,36 @@ doSummaryDocument a fi eS = do
       cddImageFiles = filter (\x -> (take 3 . takeBaseName $ x) == "CDD") allImageFiles
       electronImageFiles = filter (\x -> (take 8 . takeBaseName $ x) == "electron") allImageFiles
       holeImageFiles = filter (\x -> (take 4 . takeBaseName $ x) == "hole") allImageFiles
+      --
       orbFileNumbers = map ((read :: String -> Int) . drop 3 . takeBaseName) $ orbImageFiles
       cddFileNumbers = map ((read :: String -> Int) . drop 3 . takeBaseName) $ cddImageFiles
       electronFileNumbers = map ((read :: String -> Int) . drop 8 . takeBaseName) $ electronImageFiles
       holeFileNumbers = map ((read :: String -> Int) . drop 4 . takeBaseName) $ holeImageFiles
+      --
       orbImageFilesIndexed = zip orbFileNumbers orbImageFiles
       cddImageFilesIndexed = zip cddFileNumbers cddImageFiles
       electronImageFilesIndexed = zip electronFileNumbers electronImageFiles
       holeImageFilesIndexed = zip holeFileNumbers holeImageFiles
-      fileInfoWithImages = fi
+      --
+      fileInfoWithImagesAndPandoc = fi
         & imageFiles . orbImages .~ Just orbImageFilesIndexed
         & imageFiles . cddImages .~ Just cddImageFilesIndexed
         & imageFiles . electronImages .~ Just electronImageFilesIndexed
         & imageFiles . holeImages .~ Just holeImageFilesIndexed
-  --excitationSummary fileInfoWithImages eS
-  putStrLn "Gey"
+        & pandocInfo . pdDataDir .~ absPanDir
+        & pandocInfo . pdRefDoc .~ absPanRefDoc
+  --
+  case fileInfoWithImagesAndPandoc ^. pandocInfo . pdDocType of
+    DOCX -> do
+      let summary = excitationSummary fileInfoWithImagesAndPandoc eS
+          refDocx = fileInfoWithImagesAndPandoc ^. pandocInfo . pdRefDoc
+      summaryDoc <- runIO $ do
+        setUserDataDir (fileInfoWithImagesAndPandoc ^. pandocInfo . pdDataDir)
+        dataDir <- getUserDataDir
+        liftIO $ putStrLn $ "Set data directory to " ++ show dataDir
+        writeDocx PD.def {writerReferenceDoc = refDocx} summary
+      case summaryDoc of
+        Left err -> putStrLn $ "Error occured during generation of the pandoc summary: " ++ show err
+        Right doc -> do
+          B.writeFile
+            ((fileInfoWithImagesAndPandoc ^. outputPrefix) ++ [pathSeparator] ++ "summary.docx") doc

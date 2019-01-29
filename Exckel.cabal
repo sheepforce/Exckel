@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 10ef9e6478795280526446519766893b6fdf42e6d0f504d961f0855971825d98
+-- hash: 6de55902c9dd61912cec84040c1f6cc0ba1ef2797c290ecd7c94262a58fe4489
 
 name:           Exckel
 version:        0.0.1.0
@@ -71,9 +71,11 @@ executable Exckel-exe
       Exckel
     , attoparsec >=0.13.2.2
     , base >=4.7 && <5
+    , bytestring >=0.10.8.2
     , cmdargs >=0.10.20
     , directory >=1.3.3.0
     , filepath >=1.4.2.1
     , microlens-platform >=0.3.11
+    , pandoc >=2.5
     , text >=1.2.3.1
   default-language: Haskell2010

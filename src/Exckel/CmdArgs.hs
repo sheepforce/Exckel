@@ -29,7 +29,8 @@ data ExckelArgs = ExckelArgs
   , tachyon        :: Maybe FilePath
   , docx           :: Bool
   , odt            :: Bool
-  , docxoutref     :: Maybe FilePath
+  , panref         :: Maybe FilePath
+  , pandir         :: Maybe FilePath
   , wf             :: Maybe FilePath
   , exc            :: Maybe FilePath
   , imgres         :: (Int, Int)
@@ -82,9 +83,13 @@ exckelArgs = ExckelArgs
                    &= help "Write output as odt."
                    &= typ "BOOL"
 
-  , docxoutref     =  Nothing
+  , panref         =  Nothing
                    &= help "Reference docx with formatting hints."
                    &= typFile
+
+  , pandir         =  Nothing
+                   &= help "Pandoc data dir. Needed for serveral formats."
+                   &= typDir
 
   , wf             =  Nothing
                    &= help "Wavefunction file (molden or fchk)."

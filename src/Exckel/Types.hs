@@ -48,6 +48,11 @@ module Exckel.Types
 , electronImages
 , holeImages
 , CalcSoftware(..)
+, PDDocType(..)
+, PandocInfo(..)
+, pdDataDir
+, pdRefDoc
+, pdDocType
 , FileInfo(..)
 , logFile
 , calcSoftware
@@ -58,6 +63,7 @@ module Exckel.Types
 , cubeFiles
 , imageFiles
 , imConvertExePath
+, pandocInfo
 ) where
 import           Data.Maybe
 import           Data.Vector
@@ -224,6 +230,24 @@ instance (Default ImageFiles) where
 -- | Quantum chemistry program from which the logfile comes
 data CalcSoftware = Gaussian deriving (Eq, Show)
 
+-- | Supported output formats for the excitation summary
+data PDDocType = DOCX | ODT deriving (Eq, Show)
+
+-- | Relevant paths for the pandoc library to create an output document
+data PandocInfo = PandocInfo
+  { _pdDataDir :: Maybe FilePath
+  , _pdRefDoc :: Maybe FilePath
+  , _pdDocType :: PDDocType
+  } deriving (Eq, Show)
+makeLenses ''PandocInfo
+instance (Default PandocInfo) where
+  def = PandocInfo
+    { _pdDataDir = Nothing
+    , _pdRefDoc = Nothing
+    , _pdDocType = DOCX
+    }
+
+
 -- | FilePaths to files, given in absolute paths! Shall be expanded to absolute paths if only
 -- | specified as relative path during program execution.
 data FileInfo = FileInfo
@@ -236,6 +260,7 @@ data FileInfo = FileInfo
   , _cubeFiles        :: CubeFiles
   , _imageFiles       :: ImageFiles
   , _imConvertExePath :: FilePath
+  , _pandocInfo       :: PandocInfo
   }
   deriving (Eq, Show)
 makeLenses ''FileInfo
@@ -250,4 +275,5 @@ instance (Default FileInfo) where
     , _cubeFiles = def
     , _imageFiles = def
     , _imConvertExePath = fromMaybe "convert" $ unsafePerformIO $ findExecutable "convert"
+    , _pandocInfo = def
     }
