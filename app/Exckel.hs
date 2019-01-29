@@ -14,6 +14,7 @@ import           Paths_Exckel
 import           System.Console.CmdArgs        hiding (def)
 import           System.Directory
 import           System.FilePath
+import Data.Char
 
 -- | Entry point for the executable. Get command line arguments with defaults and call for check and
 -- | from within the check possibly for other routines.
@@ -119,7 +120,7 @@ doPlots a fi eS = do
         VMD{} -> do
           case (vmd a, tachyon a) of
             -- the vmd executable has not been found by the intial arguments or defaults
-            (Nothing, Nothing) -> putStrLn "VMD executable not found. Please specify one. Will skip cube plotting."
+            (Nothing, _) -> putStrLn "VMD executable not found. Please specify one. Will skip cube plotting."
             (Just _, Nothing) -> putStrLn "Tachyon executable not found. Please specify one. Will skip cube plotting."
             -- vmd has been found
             (Just vmdExe, Just tacExe) -> do
@@ -137,4 +138,20 @@ doPlots a fi eS = do
 -- | Use Pandoc to create the summary document, using all pictures that are there by now.
 doSummaryDocument :: ExckelArgs -> FileInfo -> [ExcState] -> IO ()
 doSummaryDocument a fi eS = do
-  putStrLn "Hey na!"
+  outDirContents <- listDirectory (fi ^. outputPrefix)
+  allImageFiles <- mapM makeAbsolute $
+    map (((fi ^. outputPrefix) ++ [pathSeparator]) ++) .
+    filter
+      (\x -> (takeExtension x) == "." ++ (map toLower . show $ PNG) ||
+             (takeExtension x) == "." ++ (map toLower . show $ JPG)
+      ) $ outDirContents
+  let orbImageFiles = filter (\x -> (take 3 . takeBaseName $ x) == "orb") allImageFiles
+      cddImageFiles = filter (\x -> (take 3 . takeBaseName $ x) == "CDD") allImageFiles
+      electronImageFiles = filter (\x -> (take 8 . takeBaseName $ x) == "electron") allImageFiles
+      holeImageFiles = filter (\x -> (take 4 . takeBaseName $ x) == "hole") allImageFiles
+      orbFileNumbers = map ((read :: String -> Int) . drop 3 . takeBaseName) $ orbImageFiles
+      cddFileNumbers = map ((read :: String -> Int) . drop 3 . takeBaseName) $ cddImageFiles
+      electronFileNumbers = map ((read :: String -> Int) . drop 8 . takeBaseName) $ electronImageFiles
+      holeFileNumbers = map ((read :: String -> Int) . drop 4 . takeBaseName) $ holeImageFiles
+
+  print allImageFiles

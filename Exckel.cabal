@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 8c8c7701ab5d6d0fae88a8af1ff362426018ed420dfcab3bb985bd89c6ba3566
+-- hash: 10ef9e6478795280526446519766893b6fdf42e6d0f504d961f0855971825d98
 
 name:           Exckel
 version:        0.0.1.0
@@ -19,6 +19,9 @@ license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
+    LICENSE
+data-files:
+    VMD.tcl
 data-dir:       data
 
 source-repository head

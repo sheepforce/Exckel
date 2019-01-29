@@ -197,6 +197,24 @@ instance (Default CubeFiles) where
     , _holeCubes = Nothing
     }
 
+-- | If images are already available, store all the filepaths here. Naming conventions of other
+-- | functions still apply. See CubeFiles data type for more information. Depending on the chosen
+-- | ImageFormat the suffix might change.
+data ImageFiles = ImageFiles
+  { _orbImages      :: Maybe [FilePath]
+  , _cddImages      :: Maybe [FilePath]
+  , _electronImages :: Maybe [FilePath]
+  , _holeImages     :: Maybe [FilePath]
+  } deriving (Eq, Show)
+makeLenses ''ImageFiles
+instance (Default ImageFiles) where
+  def = ImageFiles
+    { _orbImages = Nothing
+    , _cddImages = Nothing
+    , _electronImages = Nothing
+    , _holeImages = Nothing
+    }
+
 -- | Quantum chemistry program from which the logfile comes
 data CalcSoftware = Gaussian deriving (Eq, Show)
 
@@ -210,6 +228,7 @@ data FileInfo = FileInfo
   , _cubePlotter      :: CubePlotter
   , _outputPrefix     :: FilePath
   , _cubeFiles        :: CubeFiles
+  , _imageFiles       :: ImageFiles
   , _imConvertExePath :: FilePath
   }
   deriving (Eq, Show)
@@ -223,5 +242,6 @@ instance (Default FileInfo) where
     , _cubePlotter = def
     , _outputPrefix = "."
     , _cubeFiles = def
+    , _imageFiles = def
     , _imConvertExePath = fromMaybe "convert" $ unsafePerformIO $ findExecutable "convert"
     }

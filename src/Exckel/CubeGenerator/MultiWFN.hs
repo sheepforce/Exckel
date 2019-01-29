@@ -14,6 +14,7 @@ import           System.IO
 import           System.Process
 import           Text.Printf
 import Data.Maybe
+import System.FilePath
 
 -- | Given the file system informations, create orbital cubes for the relevant orbitals (given by
 -- | indices) and rename them to orbN.cube
@@ -33,8 +34,8 @@ calculateOrbs fi orbInds = do
   hSetBuffering mwfnOutput LineBuffering
   hSetBuffering mwfnError LineBuffering
 
-  mwfnLogFile <- openFile (mwfnOutDir ++ "/MultiWFN.out") WriteMode
-  mwfnErrFile <- openFile (mwfnOutDir ++ "/MultiWFN.err") WriteMode
+  mwfnLogFile <- openFile (mwfnOutDir ++ [pathSeparator] ++ "MultiWFN.out") WriteMode
+  mwfnErrFile <- openFile (mwfnOutDir ++ [pathSeparator] ++ "MultiWFN.err") WriteMode
   hSetBuffering mwfnLogFile LineBuffering
   hSetBuffering mwfnErrFile LineBuffering
 
@@ -65,8 +66,8 @@ calculateOrbs fi orbInds = do
     mwfnOutDir = fi ^. outputPrefix
     printOrbList :: [Int] -> String
     printOrbList o = init . concat . map ((++ ",") . show) $ o
-    oldCubeNames = map (++ ".cub") . map ((mwfnOutDir ++ "/orb") ++) $ (map (printf "%06d") orbInds)
-    newCubeNames = map (++ ".cube") . map ((mwfnOutDir ++ "/orb") ++) $ (map show orbInds)
+    oldCubeNames = map (++ ".cub") . map ((mwfnOutDir ++ [pathSeparator] ++ "orb") ++) $ (map (printf "%06d") orbInds)
+    newCubeNames = map (++ ".cube") . map ((mwfnOutDir ++ [pathSeparator] ++ "orb") ++) $ (map show orbInds)
 
 -- | Calculate charge difference densities, holes and electrons from excitations. Be aware, that
 -- | this only works with Gaussian and ORCA output files, which should be provided. The function
@@ -87,8 +88,8 @@ calculateCDDs fi esN = do
     hSetBuffering mwfnOutput LineBuffering
     hSetBuffering mwfnError LineBuffering
 
-    mwfnLogFile <- openFile (mwfnOutDir ++ "/MultiWFN.out") WriteMode
-    mwfnErrFile <- openFile (mwfnOutDir ++ "/MultiWFN.err") WriteMode
+    mwfnLogFile <- openFile (mwfnOutDir ++ [pathSeparator] ++ "MultiWFN.out") WriteMode
+    mwfnErrFile <- openFile (mwfnOutDir ++ [pathSeparator] ++ "MultiWFN.err") WriteMode
     hSetBuffering mwfnLogFile LineBuffering
     hSetBuffering mwfnErrFile LineBuffering
 
@@ -129,9 +130,9 @@ calculateCDDs fi esN = do
     mwfnWFN = fi ^. waveFunctionFile
     mwfnLog = fi ^. logFile
     mwfnOutDir = fi ^. outputPrefix
-    oldCDDName = mwfnOutDir ++ "/CDD.cub"
-    newCDDName n = mwfnOutDir ++ "/CDD" ++ show n ++ ".cube"
-    oldElectronName = mwfnOutDir ++ "/electron.cub"
-    newElectronName n = mwfnOutDir ++ "/electron" ++ show n ++ ".cube"
-    oldHoleName = mwfnOutDir ++ "/hole.cub"
-    newHoleName n = mwfnOutDir ++ "/hole" ++ show n ++ ".cube"
+    oldCDDName = mwfnOutDir ++ [pathSeparator] ++ "CDD.cub"
+    newCDDName n = mwfnOutDir ++ [pathSeparator] ++ "CDD" ++ show n ++ ".cube"
+    oldElectronName = mwfnOutDir ++ [pathSeparator] ++ "electron.cub"
+    newElectronName n = mwfnOutDir ++ [pathSeparator] ++ "electron" ++ show n ++ ".cube"
+    oldHoleName = mwfnOutDir ++ [pathSeparator] ++ "hole.cub"
+    newHoleName n = mwfnOutDir ++ [pathSeparator] ++ "hole" ++ show n ++ ".cube"

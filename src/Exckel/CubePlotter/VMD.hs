@@ -34,11 +34,11 @@ plotCubes fi = do
   vmdStartupFile <- case (fi ^. cubePlotter . cpStartUp) of
     Nothing -> do
       homeDir <- getHomeDirectory
-      hasVMDRC <- doesFileExist (homeDir ++ "/.vmdrc")
+      hasVMDRC <- doesFileExist (homeDir ++ [pathSeparator] ++ ".vmdrc")
       if hasVMDRC
         then do
           -- cleanup the vmdrc as it contains the annoying "after idle" statement
-          vmdrcRaw <- T.readFile (homeDir ++ "/.vmdrc")
+          vmdrcRaw <- T.readFile (homeDir ++ [pathSeparator] ++ ".vmdrc")
           let vmdrcRmOpen = T.lines . T.replace "after idle {" "" $ vmdrcRaw
               vmdrcLength = length vmdrcRmOpen
               vmdrcRmClosed = deleteNth (vmdrcLength - 3) vmdrcRmOpen
@@ -46,7 +46,7 @@ plotCubes fi = do
           return vmdrcClean
         else return ""
     Just f -> T.readFile f
-  T.writeFile (vmdOutDir ++ "/VMDStartup.tcl") vmdStartupFile
+  T.writeFile (vmdOutDir ++ [pathSeparator] ++ "VMDStartup.tcl") vmdStartupFile
 
   -- read the Tcl template script, make replacements and write it to work outputPrefix with the name
   -- PlotVMD.tcl
@@ -56,8 +56,8 @@ plotCubes fi = do
   createDirectoryIfMissing True vmdOutDir
   (Just vmdInput, Just vmdOutput, Just vmdError, vmdProcH) <-
     createProcess (proc (fi ^. cubePlotter . cpExePath) [ "-eofexit"
-                                                        , "-startup", (vmdOutDir ++ "/VMDStartup.tcl")
-                                                        , "-e", vmdOutDir ++ "/PlotVMD.tcl"
+                                                        , "-startup", (vmdOutDir ++ [pathSeparator] ++ "VMDStartup.tcl")
+                                                        , "-e", vmdOutDir ++ [pathSeparator] ++ "PlotVMD.tcl"
                                                         ]
                   )
     { std_out = CreatePipe
@@ -70,8 +70,8 @@ plotCubes fi = do
   hSetBuffering vmdOutput LineBuffering
   hSetBuffering vmdError LineBuffering
 
-  vmdLogFile <- openFile (vmdOutDir ++ "/VMD.out") WriteMode
-  vmdErrFile <- openFile (vmdOutDir ++ "/VMD.err") WriteMode
+  vmdLogFile <- openFile (vmdOutDir ++ [pathSeparator] ++ "VMD.out") WriteMode
+  vmdErrFile <- openFile (vmdOutDir ++ [pathSeparator] ++ "VMD.err") WriteMode
   hSetBuffering vmdLogFile LineBuffering
   hSetBuffering vmdErrFile LineBuffering
 
@@ -110,8 +110,8 @@ plotCubes fi = do
           }
         tacLog <- hGetContents tacOutput
         tacErr <- hGetContents tacError
-        writeFile (vmdOutDir ++ "/Tachyon.out") tacLog
-        writeFile (vmdOutDir ++ "/Tachyon.err") tacErr
+        writeFile (vmdOutDir ++ [pathSeparator] ++ "Tachyon.out") tacLog
+        writeFile (vmdOutDir ++ [pathSeparator] ++ "Tachyon.err") tacErr
         exitCode <- waitForProcess tacProcH
         cleanupProcess (Just tacInput, Just tacOutput, Just tacError, tacProcH)
 
@@ -181,7 +181,7 @@ substitueTemplate fi = do
           templateRaw
       templateOutput = easyRender context <$> templateParsed
   case templateOutput of
-    Right t -> T.writeFile ((fi ^. outputPrefix) ++ "/PlotVMD.tcl") t
+    Right t -> T.writeFile ((fi ^. outputPrefix) ++ [pathSeparator] ++ "PlotVMD.tcl") t
     Left e  -> print e
 
 -- | From a list of filepaths, get their basenames
