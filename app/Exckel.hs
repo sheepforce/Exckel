@@ -1,4 +1,7 @@
+import           Control.Applicative
+import           Control.Monad.IO.Class
 import           Data.Attoparsec.Text          hiding (take)
+import qualified Data.ByteString.Lazy          as B
 import           Data.Char
 import           Data.List
 import           Data.Maybe
@@ -16,11 +19,8 @@ import           Paths_Exckel
 import           System.Console.CmdArgs        hiding (def)
 import           System.Directory
 import           System.FilePath
-import Text.Pandoc hiding (def, FileInfo)
-import qualified Text.Pandoc as PD (def)
-import           Control.Monad.IO.Class
-import qualified Data.ByteString.Lazy as B
-import Control.Applicative
+import           Text.Pandoc                   hiding (FileInfo, def)
+import qualified Text.Pandoc                   as PD (def)
 
 -- | Entry point for the executable. Get command line arguments with defaults and call for check and
 -- | from within the check possibly for other routines.
@@ -97,7 +97,7 @@ doCubes a fi eS = do
               let fileInfo = fi
                     & cubeGenerator . cgExePath .~ exe
               CG.MWFN.calculateOrbs fileInfo (nub . concat . map getOrbNumbers $ eS)
-              CG.MWFN.calculateCDDs fileInfo [1 .. length eS]
+              CG.MWFN.calculateCDDs fileInfo (map (^. nState) eS)
   doPlots a fi eS
 
 -- | Call plotter to visualise all cubes found.
@@ -145,10 +145,10 @@ doPlots a fi eS = do
 doSummaryDocument :: ExckelArgs -> FileInfo -> [ExcState] -> IO ()
 doSummaryDocument a fi eS = do
   absPanDir <- case (pandir a) of
-    Nothing -> return Nothing
+    Nothing  -> return Nothing
     Just dir -> pure <$> makeAbsolute dir
   absPanRefDoc <- case (panref a) of
-    Nothing -> return Nothing
+    Nothing  -> return Nothing
     Just ref -> pure <$> makeAbsolute ref
   outDirContents <- listDirectory (fi ^. outputPrefix)
   allImageFiles <- mapM makeAbsolute $
