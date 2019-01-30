@@ -74,7 +74,6 @@ calculateOrbs fi orbInds = do
 -- | will cras, if the logfile is a Nothing but print a hint first
 calculateCDDs :: FileInfo -> [Int] -> IO ()
 calculateCDDs fi esN = do
-  putStrLn $ "having the excited states " ++ show esN
   createDirectoryIfMissing True mwfnOutDir
   mapM_ (\n -> do
     (Just mwfnInput, Just mwfnOutput, Just mwfnError, mwfnProcH) <-
