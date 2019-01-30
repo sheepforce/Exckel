@@ -2,7 +2,7 @@
 # "orbs" is the basename (without suffix) for cube files containing orbitals
 # "cdddens" is the basename (without suffix) for cube files containing CDDs, electron cubes and hole cubes
 # "viewpoint" is obtained from a VMD state file and contains settings for perspective and camera
-# be aware of the "quit" at the end. VMD wont exit otherwise and would have to be closed manually
+# Be aware of the "quit" at the end. VMD wont exit otherwise and would have to be closed manually
 
 # isovalue for orbitals and densities
 set IsoOrb  0.02

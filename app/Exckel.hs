@@ -19,19 +19,45 @@ import           Paths_Exckel
 import           System.Console.CmdArgs        hiding (def)
 import           System.Directory
 import           System.FilePath
-import           Text.Pandoc                   hiding (FileInfo, def)
+import           Text.Pandoc                   hiding (FileInfo, def, getDataFileName)
 import qualified Text.Pandoc                   as PD (def)
+import System.IO
+import System.Console.ANSI
+import Text.Printf
+
+logMessage f s = printf "  %-70s : %-30s\n" f s
+logHeader h = do
+  setSGR [SetColor Foreground Vivid Green]
+  hPutStrLn stdout h
+  setSGR [Reset]
+logInfo i = do
+  setSGR [SetColor Foreground Vivid Blue]
+  hPutStrLn stdout i
+  setSGR [Reset]
+errMessage x = do
+  setSGR [SetColor Foreground Vivid Red]
+  hPutStrLn stdout x
+  setSGR [Reset]
+
 
 -- | Entry point for the executable. Get command line arguments with defaults and call for check and
 -- | from within the check possibly for other routines.
 main :: IO ()
 main = do
+  -- print logo
+  setSGR [SetColor Foreground Vivid Yellow]
+  logoFile <- getDataFileName "Exckel.txt"
+  logo <- readFile logoFile
+  putStrLn logo
+  setSGR [Reset]
   -- read command line arguments and defaults for them
   arguments <- cmdArgs exckelArgs
-
+  -- look for ImageMagicks executable on the system
   imageMagick <- findExecutable "convert"
   case imageMagick of
-    Nothing -> putStrLn "Could not find imageMagick's \"convert\". Will abbort here."
+    -- if it is not present, dont continue
+    Nothing -> errMessage "Could not find imageMagick's \"convert\". Will abbort here."
+    -- if found, call checker for minimum input
     Just e -> checkInitial e arguments
 
 
@@ -41,33 +67,62 @@ main = do
 -- |   imC -> path to ImageMagick's convert
 -- |   a -> ExckelArgs data structure coming from the initial call
 checkInitial :: FilePath -> ExckelArgs -> IO ()
-checkInitial imC a = case (wf a, exc a) of
-  -- both wavefunction file and logfile are defined
-  (Just w, Just l) -> do
-    excAP <- makeAbsolute l
-    wfAP <- makeAbsolute w
-    outPrefAP <- makeAbsolute (outdir a)
-    let fileInfo = def
-          & logFile .~ excAP
-          & waveFunctionFile .~ wfAP
-          & outputPrefix .~ outPrefAP
-          & imConvertExePath .~ imC
-    getExcitedStates a fileInfo
-  -- one or both of wavefunction and/or logfile are undefined
-  _ -> putStrLn "No wavefunction and output file specified. Cannot continue."
+checkInitial imC a = do
+  logHeader "----"
+  logHeader "Initial file checks:"
+  case (wf a, exc a) of
+    -- both wavefunction file and logfile are defined
+    (Just w, Just l) -> do
+      excAP <- makeAbsolute l
+      wfAP <- makeAbsolute w
+      outPrefAP <- makeAbsolute (outdir a)
+      let fileInfo = def
+            & logFile .~ excAP
+            & waveFunctionFile .~ wfAP
+            & outputPrefix .~ outPrefAP
+            & imConvertExePath .~ imC
+      logMessage "QC log file with excited states" (fileInfo ^. logFile)
+      logMessage "Wavefunction file" (fileInfo ^. waveFunctionFile)
+      logMessage "Work directoring" (fileInfo ^. outputPrefix)
+      logMessage "ImageMagick executable" (fileInfo ^. imConvertExePath)
+      logMessage "Calculation software was" (show (fileInfo ^. calcSoftware))
+      getExcitedStates a fileInfo
+    -- one or both of wavefunction and/or logfile are undefined
+    _ -> errMessage $ "Wavefuntion and or log file not found. Cannot continue."
 
 -- | Get the excited states from the log file and pass to next step.
 getExcitedStates :: ExckelArgs -> FileInfo -> IO ()
 getExcitedStates a fi = do
+  logHeader "\n----"
+  logHeader "Processing log file and filter excited states:"
+  logMessage
+    "Maximum contribution of higher multiplicities allowed (by <S**2>)"
+    ( case (s2Filter a) of
+        Nothing -> "/"
+        Just contrib -> show contrib
+    )
+  logMessage
+    "Minimum oscillator strength"
+    ( case (foscFilter a) of
+       Nothing -> "/"
+       Just minF -> show minF
+    )
+  logInfo "Parsing log file ..."
   logRaw <- T.readFile (fi ^. logFile)
   let logParsed = case (fi ^. calcSoftware) of
         -- if guassian, use the gaussian parser
         Gaussian -> parseOnly gaussianLogTDDFT logRaw
   case logParsed of
     -- if parsing went wrong show the error
-    Left err -> putStrLn $ "Could not parse the log file with: " ++ show err
+    Left err -> do
+      setSGR [SetColor Foreground Vivid Red]
+      errMessage $ "  Could not parse the log file with: " ++ show err
+      setSGR [Reset]
     -- if parsing suceeded, pass data to next step
     Right eS -> do
+      logMessage "Reference wavefunction" (show . head . map (^. wfType) $ eS)
+      logMessage "Ground state multiplicity" (show . head . map (^. multiplicity) $ eS)
+      logMessage "Number of excited states" (show . length $ eS)
       -- here you could potentially filter the excited states
       let eSfilterByS2 = case (s2Filter a) of
             Nothing      -> eS
@@ -75,15 +130,28 @@ getExcitedStates a fi = do
           eSfilterByFOsc = case (foscFilter a) of
             Nothing -> eSfilterByS2
             Just strength -> filter (\x -> (x ^. oscillatorStrength) >= strength) eSfilterByS2
-      doCubes a fi eSfilterByFOsc
+      logMessage "Number of removed states due to <S**2> deviation" (show $ length eS - length eSfilterByS2)
+      logMessage "Number of removed states due to oscillator strength cutoff" (show $ length eSfilterByS2 - length eSfilterByFOsc)
+      logMessage "States remaining" (show . map (^. nState) $ eSfilterByFOsc)
+      if (length eSfilterByFOsc <= 0)
+        then errMessage "No states left to plot. Will exit here"
+        else doCubes a fi eSfilterByFOsc
 
 -- | Routine to calculate the cubes. Wraps the CubeGenerators. Jumps to next step if no cubes are to
 -- | be calculated.
 doCubes :: ExckelArgs -> FileInfo -> [ExcState]-> IO ()
 doCubes a fi eS = do
+  logHeader "\n----"
+  logHeader "Calculating cube data:"
+  logMessage
+    "Calculate cubes"
+    ( if (nocalccubes a)
+       then "no"
+       else "yes"
+    )
   if (nocalccubes a)
     -- cubes shall not be calculated
-    then putStrLn "Will not calculate any cube"
+    then return ()
     -- cubes shall be calculated
     else do
       case fi ^. cubeGenerator of
@@ -91,22 +159,33 @@ doCubes a fi eS = do
         MultiWFN{} -> do
           case (multiwfn a) of
             -- MultiWFN executable has not been found
-            Nothing -> putStrLn "MultiWFN executable not found. Please specify one. Will skip cube calculation."
+            Nothing -> errMessage "MultiWFN executable not found. Please specify one. Will skip cube calculation."
             -- MultiWFN executable has been found
             Just exe -> do
               let fileInfo = fi
                     & cubeGenerator . cgExePath .~ exe
+              logMessage "CubeCalculator" (fileInfo ^. cubeGenerator . cgExePath)
+              logMessage "Orbitals to plot" (show . nub . concat . map getOrbNumbers $ eS)
+              logInfo "Calculating orbital cubes. See \"MultiWFN.out\" and \"MultiWFN.err\""
               CG.MWFN.calculateOrbs fileInfo (nub . concat . map getOrbNumbers $ eS)
+              logInfo "Calculating CDDs. See \"MultiWFN.out\" and \"MultiWFN.err\""
               CG.MWFN.calculateCDDs fileInfo (map (^. nState) eS)
   doPlots a fi eS
 
 -- | Call plotter to visualise all cubes found.
 doPlots :: ExckelArgs -> FileInfo -> [ExcState] -> IO ()
 doPlots a fi eS = do
+  logHeader "\n----"
+  logHeader "Plotting cubes:"
+  logMessage
+    "Plot cubes"
+    ( if (norenderimages a)
+        then "no"
+        else "yes"
+    )
   if (norenderimages a)
     -- cubes will not be plotted
-    then
-      putStrLn "Will not plot cubes and render images"
+    then return ()
     -- cubes will be plotted
     else do
       outDirContents <- listDirectory (fi ^. outputPrefix)
@@ -121,13 +200,17 @@ doPlots a fi eS = do
             & cubeFiles . cddCubes .~ Just cddCubesFiles
             & cubeFiles . electronCubes .~ Just electronCubesFiles
             & cubeFiles . holeCubes .~ Just holeCubesFiles
+      logMessage "Orbital cubes" (show $ map takeFileName <$> (fileInfoWithCubes ^. cubeFiles . orbCubes))
+      logMessage "CDD cubes" (show $ map takeFileName <$> (fileInfoWithCubes ^. cubeFiles . cddCubes))
+      logMessage "Electron density cubes" (show $ map takeFileName <$> (fileInfoWithCubes ^. cubeFiles . electronCubes))
+      logMessage "Hole density cubes" (show $ map takeFileName <$> (fileInfoWithCubes ^. cubeFiles . holeCubes))
       case fileInfoWithCubes ^. cubePlotter of
         -- VMD is selected as a plotter for cubes
         VMD{} -> do
           case (vmd a, tachyon a) of
             -- the vmd executable has not been found by the intial arguments or defaults
-            (Nothing, _) -> putStrLn "VMD executable not found. Please specify one. Will skip cube plotting."
-            (Just _, Nothing) -> putStrLn "Tachyon executable not found. Please specify one. Will skip cube plotting."
+            (Nothing, _) -> errMessage "VMD executable not found. Please specify one. Will skip cube plotting."
+            (Just _, Nothing) -> errMessage "Tachyon executable not found. Please specify one. Will skip cube plotting."
             -- vmd has been found
             (Just vmdExe, Just tacExe) -> do
               let fileInfoWithVMD = fileInfoWithCubes
@@ -138,12 +221,22 @@ doPlots a fi eS = do
                     & cubePlotter . cpRenderer . rExePath .~ tacExe
                     & cubePlotter . cpRenderer . rResolution .~ (imgres a)
                     & cubePlotter . cpRenderer . rImageFormat .~ PNG
+              logMessage "Cube plotter" (fileInfoWithVMD ^. cubePlotter . cpExePath)
+              logMessage "VMD state file with perspective" (fromMaybe "None (will use default perspective)" $ fileInfoWithVMD ^. cubePlotter . cpStateFile)
+              logMessage "VMD start up file with general settings" (fromMaybe "None (will look for $HOME/.vmdrc and use defaults if non existant)" $ fileInfoWithVMD ^. cubePlotter . cpStartUp)
+              logMessage "VMD template script" (fileInfoWithVMD ^. cubePlotter . cpTemplate)
+              logMessage "Rendering engine" (fileInfoWithVMD ^. cubePlotter . cpRenderer . rExePath)
+              logMessage "Rendering resolution" (show $ fileInfoWithVMD ^. cubePlotter . cpRenderer . rResolution)
+              logMessage "Renderer image format" (show $ fileInfoWithVMD ^. cubePlotter . cpRenderer . rImageFormat)
+              logInfo "Calling VMD and Tachyon now. See \"VMD.out\", \"VMD.err\", \"Tachyon.out\" and \"Tachyon.err\""
               CP.VMD.plotCubes fileInfoWithVMD
   doSummaryDocument a fi eS
 
 -- | Use Pandoc to create the summary document, using all pictures that are there by now.
 doSummaryDocument :: ExckelArgs -> FileInfo -> [ExcState] -> IO ()
 doSummaryDocument a fi eS = do
+  logHeader "\n----"
+  logHeader "Creating summary document:"
   absPanDir <- case (pandir a) of
     Nothing  -> return Nothing
     Just dir -> pure <$> makeAbsolute dir
@@ -179,18 +272,24 @@ doSummaryDocument a fi eS = do
         & imageFiles . holeImages .~ Just holeImageFilesIndexed
         & pandocInfo . pdDataDir .~ absPanDir
         & pandocInfo . pdRefDoc .~ absPanRefDoc
+  logMessage "Pandoc data directory" (fromMaybe "Not set (some formats might not work)" $ fileInfoWithImagesAndPandoc ^. pandocInfo . pdDataDir)
+  logMessage "Pandoc reference document" (fromMaybe "Not set (default Pandoc formatting) "$ fileInfoWithImagesAndPandoc ^. pandocInfo . pdRefDoc)
+  logMessage "Images for these orbitals available" (show $ map fst <$> fileInfoWithImagesAndPandoc ^. imageFiles . orbImages)
+  logMessage "CDDs images for these states available" (show $ map fst <$> fileInfoWithImagesAndPandoc ^. imageFiles . cddImages)
+  logMessage "Electron images for these states available" (show $ map fst <$> fileInfoWithImagesAndPandoc ^. imageFiles . electronImages)
+  logMessage "Hole images for these states available" (show $ map fst <$> fileInfoWithImagesAndPandoc ^. imageFiles . holeImages)
   --
   case fileInfoWithImagesAndPandoc ^. pandocInfo . pdDocType of
     DOCX -> do
+      logMessage "Summary document format" "Microsoft Word Document (docx)"
       let summary = excitationSummary fileInfoWithImagesAndPandoc eS
           refDocx = fileInfoWithImagesAndPandoc ^. pandocInfo . pdRefDoc
       summaryDoc <- runIO $ do
         setUserDataDir (fileInfoWithImagesAndPandoc ^. pandocInfo . pdDataDir)
-        dataDir <- getUserDataDir
-        liftIO $ putStrLn $ "Set data directory to " ++ show dataDir
         writeDocx PD.def {writerReferenceDoc = refDocx} summary
       case summaryDoc of
-        Left err -> putStrLn $ "Error occured during generation of the pandoc summary: " ++ show err
+        Left err -> errMessage $ "Error occured during generation of the pandoc summary: " ++ show err
         Right doc -> do
+          logInfo "Writing document to \"summary.docx\""
           B.writeFile
             ((fileInfoWithImagesAndPandoc ^. outputPrefix) ++ [pathSeparator] ++ "summary.docx") doc
