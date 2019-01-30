@@ -16,14 +16,15 @@ import           Exckel.Parser                 hiding (vmdState)
 import           Exckel.Types
 import           Lens.Micro.Platform
 import           Paths_Exckel
+import           System.Console.ANSI
 import           System.Console.CmdArgs        hiding (def)
 import           System.Directory
 import           System.FilePath
-import           Text.Pandoc                   hiding (FileInfo, def, getDataFileName)
+import           System.IO
+import           Text.Pandoc                   hiding (FileInfo, def,
+                                                getDataFileName)
 import qualified Text.Pandoc                   as PD (def)
-import System.IO
-import System.Console.ANSI
-import Text.Printf
+import           Text.Printf
 
 logMessage f s = printf "  %-70s : %-30s\n" f s
 logHeader h = do
@@ -98,13 +99,13 @@ getExcitedStates a fi = do
   logMessage
     "Maximum contribution of higher multiplicities allowed (by <S**2>)"
     ( case (s2Filter a) of
-        Nothing -> "/"
+        Nothing      -> "/"
         Just contrib -> show contrib
     )
   logMessage
     "Minimum oscillator strength"
     ( case (foscFilter a) of
-       Nothing -> "/"
+       Nothing   -> "/"
        Just minF -> show minF
     )
   logInfo "Parsing log file ..."
