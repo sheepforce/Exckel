@@ -1,7 +1,8 @@
 import           Control.Applicative
 import           Control.Monad.IO.Class
 import           Data.Attoparsec.Text          hiding (take)
-import qualified Data.ByteString.Lazy          as B
+import qualified Data.ByteString.Char8         as BS
+import qualified Data.ByteString.Lazy          as BL
 import           Data.Char
 import           Data.List
 import           Data.Maybe
@@ -11,6 +12,7 @@ import           Exckel.CmdArgs
 import           Exckel.CubeGenerator.MultiWFN as CG.MWFN
 import           Exckel.CubePlotter.VMD        as CP.VMD
 import           Exckel.DocumentCreator
+import           Exckel.EmbedContents
 import           Exckel.ExcUtils
 import           Exckel.Parser                 hiding (vmdState)
 import           Exckel.Types
@@ -47,9 +49,7 @@ main :: IO ()
 main = do
   -- print logo
   setSGR [SetColor Foreground Vivid Yellow]
-  logoFile <- getDataFileName "Exckel.txt"
-  logo <- readFile logoFile
-  putStrLn logo
+  putStrLn $ BS.unpack exckelLogo
   setSGR [Reset]
   -- read command line arguments and defaults for them
   arguments <- cmdArgs exckelArgs
@@ -292,5 +292,5 @@ doSummaryDocument a fi eS = do
         Left err -> errMessage $ "Error occured during generation of the pandoc summary: " ++ show err
         Right doc -> do
           logInfo "Writing document to \"summary.docx\""
-          B.writeFile
+          BL.writeFile
             ((fileInfoWithImagesAndPandoc ^. outputPrefix) ++ [pathSeparator] ++ "summary.docx") doc

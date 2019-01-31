@@ -9,6 +9,8 @@ copyright:           "2019 Phillip Seeber"
 extra-source-files:
   - README.md
   - LICENSE
+  - data/Exckel.txt
+  - data/VMD.tcl
 
 data-dir: data
 
@@ -46,6 +48,7 @@ library:
     - filepath >= 1.4.2.1
     - unordered-containers >= 0.2.9.0
     - cmdargs >= 0.10.20
+    - file-embed >= 0.0.11
   default-extensions:
     - OverloadedStrings
 
