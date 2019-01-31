@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.0.
+-- This file has been generated from package.yaml by hpack version 0.31.1.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 0f18d082cf9d449e8d4d4b657a6c1b0eee72afc9498dacf50adaa723af7b872a
+-- hash: 3e14178a137df5fd77a3cfd884c5838c149b01b9f9557b1a4360ab330f38e8fe
 
 name:           Exckel
 version:        0.0.1.0
@@ -56,12 +56,13 @@ library
     , pandoc >=2.5
     , pandoc-types >=1.17.5.4
     , process >=1.6.3.0
+    , split >=0.2.3.3
     , text >=1.2.3.1
     , unordered-containers >=0.2.9.0
     , vector >=0.12.0.2
   default-language: Haskell2010
 
-executable Exckel-exe
+executable exckel
   main-is: Exckel.hs
   other-modules:
       Paths_Exckel

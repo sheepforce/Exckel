@@ -46,11 +46,12 @@ library:
     - filepath >= 1.4.2.1
     - unordered-containers >= 0.2.9.0
     - cmdargs >= 0.10.20
+    - split >= 0.2.3.3
   default-extensions:
     - OverloadedStrings
 
 executables:
-  Exckel-exe:
+  exckel:
     main: Exckel.hs
     source-dirs: app
     ghc-options:
