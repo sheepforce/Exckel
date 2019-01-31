@@ -17,43 +17,50 @@ import           Lens.Micro.Platform
 import           Text.Pandoc            hiding (FileInfo)
 import           Text.Pandoc.Builder    hiding (FileInfo)
 import           Text.Printf
--- import Data.Either -- remove later
 import           Exckel.Parser
+import Data.List.Split (chunksOf)
+import Data.Maybe
 
 -- | This generates a Pandoc document as a summary of an excited state calculation. It takes a
 -- | (possibly filtered) list of excited states to summarise in a document.
 excitationSummary :: FileInfo -> [ExcState] -> Pandoc
 excitationSummary fi es =
-    (setTitle title)
+  (setTitle title)
   $ doc $
-      table
-       "Excited state summary" -- caption
-       -- column alignments and width
-       [ (AlignCenter, 0.1)    -- state number
-       , (AlignCenter, 0.2)    -- orbital pairs
-       , (AlignRight, 0.125)   -- weight
-       , (AlignRight, 0.075)   -- energy
-       , (AlignRight, 0.1)     -- wavelength
-       , (AlignRight, 0.1)     -- oscillator strength
-       , (AlignCenter, 0.15)   -- hole
-       , (AlignCenter, 0.15)   -- electron
-       ]
-       -- heading of the table
-       [ header 1 "State"
-       , header 1 "Transition"
-       , header 1 "Weight / %"
-       , header 1 "E / eV"
-       , header 1 "λ / nm"
-       , header 1 "f_osc"
-       , header 1 "hole"
-       , header 1 "electron"
-       ]
-       -- generated summary for excitations
-       (tableContents es)
+       table
+         "Excited state summary" -- caption
+         -- column alignments and width
+         [ (AlignCenter, 0.1)    -- state number
+         , (AlignCenter, 0.2)    -- orbital pairs
+         , (AlignRight, 0.125)   -- weight
+         , (AlignRight, 0.075)   -- energy
+         , (AlignRight, 0.1)     -- wavelength
+         , (AlignRight, 0.1)     -- oscillator strength
+         , (AlignCenter, 0.15)   -- hole
+         , (AlignCenter, 0.15)   -- electron
+         ]
+         -- heading of the table
+         [ header 1 "State"
+         , header 1 "Transition"
+         , header 1 "Weight / %"
+         , header 1 "E / eV"
+         , header 1 "λ / nm"
+         , header 1 "f_osc"
+         , header 1 "hole"
+         , header 1 "electron"
+         ]
+         -- generated summary for excitations
+         (tableContents es)
+    <> table
+         "Orbital"                        -- caption
+         (replicate 5 (AlignCenter, 0.2)) -- 5 columns
+         []                               -- empty headers
+         (orbContents)                    -- pictures of the orbitals
+
   where
     -- title of the Pandoc document
     title :: Many Inline
-    title = fromList [Str ("Excited State")]
+    title = fromList [Str ("Excited State Summary")]
     -- create the [[Blocks]] scheme (rows first, columns second) required for the Pandoc table from
     -- excited state output
     tableContents :: [ExcState] -> [[Blocks]]
@@ -64,14 +71,21 @@ excitationSummary fi es =
                  , para . text . printf "%4.2F" . (* 27.11386020) $ e ^. relEnergy
                  , para . text . printf "%4.1F" . (1239.84197386209 /) . (* 27.11386020) $ e ^. relEnergy
                  , para . text . printf "%6.4F" $ e ^. oscillatorStrength
-                 , case (getImageByType fi e holeImages) of
+                 , case (getCDDImageByType fi e holeImages) of
                      Nothing -> para . text $ ""
                      Just (nState, imagePath) -> para $ imageWith ("", ["align-left"], [("width", "2.5cm")]) imagePath "" (text . ("hole " ++) . show $ nState)
-                 , case (getImageByType fi e electronImages) of
+                 , case (getCDDImageByType fi e electronImages) of
                      Nothing -> para . text $ ""
                      Just (nState, imagePath) -> para $ imageWith ("", ["align-left"], [("width", "2.5cm")]) imagePath "" (text . ("electron " ++) . show $ nState)
                  ]
           ) excStates
+    -- create a table of all orbital pictures
+    orbContents :: [[Blocks]]
+    orbContents =
+      chunksOf 5 .
+      map (\i -> para $ imageWith ("", ["align-left"], [("width", "2.5cm")]) (snd i) "" (text . show . fst $ i)) .
+      fromMaybe [] $
+      fi ^. imageFiles . orbImages
     -- fill single line in a transition block, which constructs an CI determinant (CIS has single
     -- pair per line, CID has two pairs per line and so on)
     ciEntry :: CIDeterminant -> String
@@ -105,7 +119,7 @@ excitationSummary fi es =
     manyWeightEntry ciDs = lineBlock . map text . V.toList . V.map weightEntry $ ciDs
     -- Look for hole image of the excited state. Give the FileInfo type, an excited state and the
     -- lens for the corresponding image type (from ImageFiles type).
-    getImageByType fi eS lens = case candidates of
+    getCDDImageByType fi eS lens = case candidates of
       Nothing -> Nothing
       Just [] -> Nothing
       Just x -> Just $ head x
@@ -113,35 +127,3 @@ excitationSummary fi es =
         candidates =
           filter (\x -> (fst x) == (eS ^. nState)) <$>
           fi ^. imageFiles . lens
-
-
-
-
-
-----------------------------------------------------------------------------------------------------
--- Testing Pandoc functionality
-----------------------------------------------------------------------------------------------------
-fromRight :: Either a b -> b
-fromRight (Right x) = x
-
-testPan :: IO (Either PandocError B.ByteString)
-testPan = runIO $ do
-  testOutput <- liftIO $ T.readFile "/data/WiP/Dev/Exckel/TestFiles/RuPt_DFT_EXC-SPE.log"
-  let excitedStates = fromRight $ parseOnly gaussianLogTDDFT testOutput
-      excitedDocument = excitationSummary undefined [ excitedStates !! i | i <- [0,2,3,4,5]]
-  setUserDataDir (Just "/user/seeber/Downloads/pandoc-master/data")
-  dataDir <- getUserDataDir
-  case dataDir of
-    Just d  -> liftIO . putStrLn $ "Data directory is: " ++ show dataDir
-    Nothing -> liftIO . putStrLn $ "Could not get a data directory"
-  odtTemplate <- getDefaultTemplate "odt"
-  -- writeODT def { writerTemplate = Just odtTemplate} excitedDocument
-  writeDocx def {writerReferenceDoc = Just "/data/WiP/Dev/Exckel/TestFiles/Test.docx"} excitedDocument
-
-
-testIt :: IO ()
-testIt = do
-  pandocWriteResult <- testPan
-  case pandocWriteResult of
-    Right r -> B.writeFile "/user/seeber/Test.docx" r
-    Left _  -> putStrLn "Oi, something went wrong"

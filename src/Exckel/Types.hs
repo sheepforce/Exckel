@@ -236,7 +236,7 @@ data PDDocType = DOCX | ODT deriving (Eq, Show)
 -- | Relevant paths for the pandoc library to create an output document
 data PandocInfo = PandocInfo
   { _pdDataDir :: Maybe FilePath
-  , _pdRefDoc :: Maybe FilePath
+  , _pdRefDoc  :: Maybe FilePath
   , _pdDocType :: PDDocType
   } deriving (Eq, Show)
 makeLenses ''PandocInfo
