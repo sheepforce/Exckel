@@ -68,10 +68,12 @@ module Exckel.Types
 import           Data.Maybe
 import           Data.Vector
 import           Lens.Micro.Platform
-import           Paths_Exckel
 import           System.Directory
 import           System.IO
 import           System.IO.Unsafe
+import qualified Data.Text as T
+import qualified Data.ByteString.Char8 as B
+import Exckel.EmbedContents
 
 class (Default a) where
   def :: a
@@ -167,7 +169,7 @@ data CubePlotter =
     VMD
       { _cpExePath   :: FilePath
       , _cpStateFile :: Maybe FilePath
-      , _cpTemplate  :: FilePath
+      , _cpTemplate  :: T.Text
       , _cpRenderer  :: Renderer
       , _cpStartUp   :: Maybe FilePath
       }
@@ -183,7 +185,7 @@ instance (Default CubePlotter) where
   def = VMD
     { _cpExePath = "vmd"
     , _cpStateFile = Nothing
-    , _cpTemplate = unsafePerformIO $ getDataFileName "VMD.tcl"
+    , _cpTemplate = T.pack . B.unpack $ vmdTemplateScript
     , _cpRenderer = def
     , _cpStartUp = Nothing
     }

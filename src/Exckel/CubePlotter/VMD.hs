@@ -173,8 +173,8 @@ substitueTemplate fi = do
         ] :: H.HashMap T.Text T.Text
 
   -- read the Tcl template script for VMD, parse it and make substitutions (using Ginger)
-  templateRaw <- readFile (fi ^. cubePlotter . cpTemplate)
-  let templateParsed = runIdentity $
+  let templateRaw = T.unpack $ fi ^. cubePlotter . cpTemplate :: String
+      templateParsed = runIdentity $
         parseGinger
           (const $ return Nothing) -- no resolver being used, as no includes necessary
           Nothing                  -- source name

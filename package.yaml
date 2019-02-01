@@ -12,13 +12,6 @@ extra-source-files:
   - data/Exckel.txt
   - data/VMD.tcl
 
-data-dir: data
-
-data-files:
-  - Exckel.txt
-  - VMD.tcl
-
-
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
 # category:            Web
@@ -48,11 +41,8 @@ library:
     - filepath >= 1.4.2.1
     - unordered-containers >= 0.2.9.0
     - cmdargs >= 0.10.20
-<<<<<<< HEAD
     - file-embed >= 0.0.11
-=======
-    - split >= 0.2.3.3
->>>>>>> f7af48e6ce5faea68a39d9d0e643179d10a5765f
+    - split >= 0.2.2.3
   default-extensions:
     - OverloadedStrings
 

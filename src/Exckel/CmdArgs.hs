@@ -24,7 +24,7 @@ data ExckelArgs = ExckelArgs
   , vmd            :: Maybe FilePath
   , vmdState       :: Maybe FilePath
   , vmdStartUp     :: Maybe FilePath
-  , vmdTemplate    :: FilePath
+  , vmdTemplate    :: Maybe FilePath
   , multiwfn       :: Maybe FilePath
   , tachyon        :: Maybe FilePath
   , docx           :: Bool
@@ -63,7 +63,7 @@ exckelArgs = ExckelArgs
                    &= help "VMD script to set up general look. If none is specified, it will default to your vmdrc."
                    &= typFile
 
-  , vmdTemplate    =  (unsafePerformIO $ getDataFileName "VMD.tcl")
+  , vmdTemplate    =  Nothing
                    &= help "VMD template script for plotting."
                    &= typFile
 
@@ -110,4 +110,5 @@ exckelArgs = ExckelArgs
   , foscFilter     =  Nothing
                    &= help "Filter excited states by minimum oscillator strength (applies only to summary document)."
                    &= typ "FLOAT"
-  }
+  } &= summary "The Exckel automatic summary programm"
+    &= help "Available command line arguments. At least \"--wf\" and \"--exc\" must be specified."

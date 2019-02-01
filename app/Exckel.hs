@@ -214,23 +214,29 @@ doPlots a fi eS = do
             (Just _, Nothing) -> errMessage "Tachyon executable not found. Please specify one. Will skip cube plotting."
             -- vmd has been found
             (Just vmdExe, Just tacExe) -> do
-              let fileInfoWithVMD = fileInfoWithCubes
+              let fileInfoWithVMDWithoutTemplate = fileInfoWithCubes
                     & cubePlotter . cpExePath .~ vmdExe
                     & cubePlotter . cpStateFile .~ (vmdState a)
                     & cubePlotter . cpStartUp .~ (vmdStartUp a)
-                    & cubePlotter . cpTemplate .~ (vmdTemplate a)
                     & cubePlotter . cpRenderer . rExePath .~ tacExe
                     & cubePlotter . cpRenderer . rResolution .~ (imgres a)
                     & cubePlotter . cpRenderer . rImageFormat .~ PNG
-              logMessage "Cube plotter" (fileInfoWithVMD ^. cubePlotter . cpExePath)
-              logMessage "VMD state file with perspective" (fromMaybe "None (will use default perspective)" $ fileInfoWithVMD ^. cubePlotter . cpStateFile)
-              logMessage "VMD start up file with general settings" (fromMaybe "None (will look for $HOME/.vmdrc and use defaults if non existant)" $ fileInfoWithVMD ^. cubePlotter . cpStartUp)
-              logMessage "VMD template script" (fileInfoWithVMD ^. cubePlotter . cpTemplate)
-              logMessage "Rendering engine" (fileInfoWithVMD ^. cubePlotter . cpRenderer . rExePath)
-              logMessage "Rendering resolution" (show $ fileInfoWithVMD ^. cubePlotter . cpRenderer . rResolution)
-              logMessage "Renderer image format" (show $ fileInfoWithVMD ^. cubePlotter . cpRenderer . rImageFormat)
+              fileInfoWithVMDAndTemplate <- case (vmdTemplate a) of
+                    -- no other template than built in default specified
+                    Nothing -> return fileInfoWithVMDWithoutTemplate
+                    -- filepath to other template specified
+                    Just t -> do
+                      template <- T.readFile t
+                      return $ fileInfoWithVMDWithoutTemplate & cubePlotter . cpTemplate .~ template
+              logMessage "Cube plotter" (fileInfoWithVMDAndTemplate ^. cubePlotter . cpExePath)
+              logMessage "VMD state file with perspective" (fromMaybe "None (will use default perspective)" $ fileInfoWithVMDAndTemplate ^. cubePlotter . cpStateFile)
+              logMessage "VMD start up file with general settings" (fromMaybe "None (will look for $HOME/.vmdrc and use defaults if non existant)" $ fileInfoWithVMDAndTemplate ^. cubePlotter . cpStartUp)
+              logMessage "VMD template script" (fileInfoWithVMDAndTemplate ^. cubePlotter . cpTemplate)
+              logMessage "Rendering engine" (fileInfoWithVMDAndTemplate ^. cubePlotter . cpRenderer . rExePath)
+              logMessage "Rendering resolution" (show $ fileInfoWithVMDAndTemplate ^. cubePlotter . cpRenderer . rResolution)
+              logMessage "Renderer image format" (show $ fileInfoWithVMDAndTemplate ^. cubePlotter . cpRenderer . rImageFormat)
               logInfo "Calling VMD and Tachyon now. See \"VMD.out\", \"VMD.err\", \"Tachyon.out\" and \"Tachyon.err\""
-              CP.VMD.plotCubes fileInfoWithVMD
+              CP.VMD.plotCubes fileInfoWithVMDAndTemplate
   doSummaryDocument a fi eS
 
 -- | Use Pandoc to create the summary document, using all pictures that are there by now.
