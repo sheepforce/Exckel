@@ -54,6 +54,12 @@ executables:
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N
+      # enable these for completely static build
+      #- -static
+      #- -fPIC
+      #- -optc-static
+      #- -optl-static
+      #- -optl-pthread
     dependencies:
       - Exckel
       - cmdargs >= 0.10.20
