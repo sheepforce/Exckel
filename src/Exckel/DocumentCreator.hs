@@ -9,17 +9,18 @@ module Exckel.DocumentCreator
 import           Control.Monad.IO.Class
 import           Data.Attoparsec.Text
 import qualified Data.ByteString.Lazy   as B
+import           Data.List.Split        (chunksOf)
+import           Data.Maybe
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as T
 import qualified Data.Vector            as V
+import           Exckel.ExcUtils
+import           Exckel.Parser
 import           Exckel.Types           hiding (def)
 import           Lens.Micro.Platform
 import           Text.Pandoc            hiding (FileInfo)
 import           Text.Pandoc.Builder    hiding (FileInfo)
 import           Text.Printf
-import           Exckel.Parser
-import Data.List.Split (chunksOf)
-import Data.Maybe
 
 -- | This generates a Pandoc document as a summary of an excited state calculation. It takes a
 -- | (possibly filtered) list of excited states to summarise in a document.
@@ -55,7 +56,15 @@ excitationSummary fi es =
          "Orbital"                        -- caption
          (replicate 5 (AlignCenter, 0.2)) -- 5 columns
          []                               -- empty headers
-         (orbContents)                    -- pictures of the orbitals
+         ( orbContents                    -- pictures of the orbitals
+             ( (^. nBasisFunctions) . head $ es)
+             ( case ((^. wfType) . head $ es) of
+                 Nothing                  -> False
+                 Just ClosedShell         -> False
+                 Just OpenShell           -> True
+                 Just RestrictedOpenShell -> True
+             )
+         )
 
   where
     -- title of the Pandoc document
@@ -80,12 +89,13 @@ excitationSummary fi es =
                  ]
           ) excStates
     -- create a table of all orbital pictures
-    orbContents :: [[Blocks]]
-    orbContents =
+    orbContents :: Int -> Bool -> [[Blocks]]
+    orbContents nBasFun isOpenShell =
       chunksOf 5 .
-      map (\i -> para $ imageWith ("", ["align-left"], [("width", "2.5cm")]) (snd i) "" (text . show . fst $ i)) .
-      fromMaybe [] $
-      fi ^. imageFiles . orbImages
+      map (\i -> para (imageWith ("", ["align-left"], [("width", "2.5cm")]) (snd i) (show . fst $ i) (text . show . fst $ i))
+                 <>
+                 para (text (orbNumberToSpinOrbNumber nBasFun isOpenShell . fst $ i))
+          ) . fromMaybe [] $ fi ^. imageFiles . orbImages
     -- fill single line in a transition block, which constructs an CI determinant (CIS has single
     -- pair per line, CID has two pairs per line and so on)
     ciEntry :: CIDeterminant -> String
@@ -122,7 +132,7 @@ excitationSummary fi es =
     getCDDImageByType fi eS lens = case candidates of
       Nothing -> Nothing
       Just [] -> Nothing
-      Just x -> Just $ head x
+      Just x  -> Just $ head x
       where
         candidates =
           filter (\x -> (fst x) == (eS ^. nState)) <$>

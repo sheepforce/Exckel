@@ -2,7 +2,8 @@
 Providing helper functions to calculate some numbers ...
 -}
 module Exckel.ExcUtils
-( getOrbNumbers
+( orbNumberToSpinOrbNumber
+, getOrbNumbers
 , gauss
 , convolutionSum
 , oscStrength2Epsilon
@@ -17,6 +18,14 @@ import           Data.Maybe
 import qualified Data.Vector         as V
 import           Exckel.Types
 import           Lens.Micro.Platform
+
+-- | Given excited state information, this function will convert back the orbital number to orbital
+-- | number + spin and make a string from it.
+orbNumberToSpinOrbNumber :: Int -> Bool -> Int -> String
+orbNumberToSpinOrbNumber nBasFun isOpenShell nOrb = case (nOrb <= nBasFun, isOpenShell) of
+  (True, False) -> show nOrb
+  (True, True) -> show nOrb ++ "A"
+  (False, True) -> show (nOrb - nBasFun) ++ "B"
 
 -- | Get orbital indices (1 based) for an excited state as written to the wavefunction file. Beta
 -- | orbitals usually start at (n(alpha orbitals) + 1).

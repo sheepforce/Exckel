@@ -55,6 +55,11 @@ main = do
   arguments <- cmdArgs exckelArgs
   -- look for ImageMagicks executable on the system
   imageMagick <- findExecutable "convert"
+  -- make sure output directory exists
+  hasOutDir <- doesDirectoryExist (outdir arguments)
+  case hasOutDir of
+    True -> return ()
+    False -> createDirectory (outdir arguments)
   case imageMagick of
     -- if it is not present, dont continue
     Nothing -> errMessage "Could not find imageMagick's \"convert\". Will abbort here."
