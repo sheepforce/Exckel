@@ -1,3 +1,9 @@
+{-
+Gnuplot wrapper interface. Rather than using the gnuplot library, i decided to go with a system call
+as documentation of the gnuplot library is rather bad (aka i have no idea how to use it). File names
+here are hardcoded and "Spectrum.png" is assumed (in the rest of the program) to be succesfully
+created by this module.
+-}
 module Exckel.SpectrumPlotter.Gnuplot
 ( plotSpectrum
 ) where
@@ -10,6 +16,12 @@ import           System.IO
 import           System.Process
 import           Text.Printf
 
+-- | Plots the spectrum to a png file. Uses the informations about excited states. It takes
+-- |   - fi -> the FileInfo data type for paths
+-- |   - es -> a list of excited states (should be the ones filtered by S**2 value). Will plot the
+-- |           the spectrum from all of these states
+-- |   - fes -> a list of excited states filtered by oscillator strength (should be a subset of es
+-- |            and the states filtered by oscillator strength AND S**2 value from the CLI)
 plotSpectrum :: FileInfo -> [ExcState] -> [ExcState] -> IO ()
 plotSpectrum fi es fes = do
   (Just gnuplotInput, Just gnuplotOutput, Just gnuplotError, gnuplotProcH) <-

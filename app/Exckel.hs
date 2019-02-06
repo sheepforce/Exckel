@@ -1,3 +1,10 @@
+{-
+This is the app for Exckel. The command line interface, interacting with the user and calling
+everything else. There are some assumptions made here.
+  - ImageMagick is available (if not -> quit).
+  - Gnuplot is available and has the PNG terminal (if gnuplot not available -> quit).
+  - Filesystem stays consistent during run. No one is renaiming or deleting files during execution.
+-}
 import           Control.Applicative
 import           Control.Monad.IO.Class
 import           Data.Attoparsec.Text           hiding (take)
@@ -98,6 +105,7 @@ checkInitial (imC, gnp) a = do
       logMessage "Wavefunction file" (fileInfo ^. waveFunctionFile)
       logMessage "Work directoring" (fileInfo ^. outputPrefix)
       logMessage "ImageMagick executable" (fileInfo ^. imConvertExePath)
+      logMessage "Plotting software executable" (fileInfo ^. spectrumPlotter . spExePath)
       logMessage "Calculation software was" (show (fileInfo ^. calcSoftware))
       getExcitedStates a fileInfo
     -- one or both of wavefunction and/or logfile are undefined
