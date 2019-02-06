@@ -129,6 +129,8 @@ The finaly summary is written to the output directoy as `summary.*`.
 
 ### Example
 
+   exckel --wf=Benzen.fchk --exc=Benzen.log --outdir=exckel-out --foscfilter=0.1 --panformat=docx
+
 
 ## Installation
 Exckel needs serveral components to do all its work. Many of them are Haskell libraries and you don't need to take care of them, but calculators for the orbitals, visualisation software and the raytracing engine are system calls to standard quantum chemistry applications. Furthermore ImageMagick and Gnuplot are needed.
@@ -146,8 +148,16 @@ Installation of the external programs is up to you. Installation of them is quit
   - On Linux is basically always included in the distributions, easy to install on Windows.
 - [ImageMagick](https://www.imagemagick.org/)
   - On Linux is basically always included in the distributions, easy to install on Windows.
-- [Haskell's Stack](https://docs.haskellstack.org/en/stable/README/)
+- If you want to use ODT or LaTeX output [Pandoc](https://github.com/jgm/pandoc)
+- If building from source [Haskell's Stack](https://docs.haskellstack.org/en/stable/README/)
   - Can be easily installed as a binary without any knowledge of Haskell
+
+If you need ODT or LaTeX outputs, you will need the Pandoc data directory, which contains necessary templates for these formats. This can be obtained from the git repository of Pandoc:
+
+    git clone https://github.com/jgm/pandoc.git
+    cp pandoc-master/data $DEST
+
+Copy the data directory from Pandoc to a persistent destination of your choice and point `--pandir` to it at runtime.
 
 ### Building from Source
 Clone the repository from git, use stack to install everything.
