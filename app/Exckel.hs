@@ -149,6 +149,7 @@ getExcitedStates a fi = do
       if (length eSfilterByFOsc <= 0)
         then errMessage "No states left to plot. Will exit here"
         else do
+          logInfo $ "Plotting spectrum as Spectrum.png. See Gnuplot.out and Gnuplot.err"
           SP.GP.plotSpectrum fi eSfilterByS2 eSfilterByFOsc
           doCubes a fi eSfilterByFOsc
 
