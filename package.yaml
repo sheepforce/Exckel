@@ -11,6 +11,8 @@ extra-source-files:
   - LICENSE
   - data/Exckel.txt
   - data/VMD.tcl
+  - data/DefaultRef.docx
+  - data/DefaultRef.odt
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package

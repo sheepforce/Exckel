@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.1.
+-- This file has been generated from package.yaml by hpack version 0.31.0.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: bac8e522306f379407de72b8875573e5126f2dd1cf213338caf0bc6e2101df90
+-- hash: c90aced8b25536daefb642332acb0ed9e80a1ff7e1fca2649407778f1da473ee
 
 name:           Exckel
 version:        0.0.1.0
@@ -22,6 +22,8 @@ extra-source-files:
     LICENSE
     data/Exckel.txt
     data/VMD.tcl
+    data/DefaultRef.docx
+    data/DefaultRef.odt
 
 source-repository head
   type: git
