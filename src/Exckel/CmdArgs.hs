@@ -36,6 +36,7 @@ data ExckelArgs = ExckelArgs
   , imgres         :: (Int, Int)
   , s2Filter       :: Maybe Double
   , foscFilter     :: Maybe Double
+  , fwhm           :: Maybe Double
   } deriving (Show, Data, Typeable)
 
 exckelArgs = ExckelArgs
@@ -109,6 +110,10 @@ exckelArgs = ExckelArgs
 
   , foscFilter     =  Nothing
                    &= help "Filter excited states by minimum oscillator strength (applies only to summary document)."
+                   &= typ "FLOAT"
+
+  , fwhm           =  Nothing
+                   &= help "Full width at half maximum of the gaussian function used to convolute the stick spectrum."
                    &= typ "FLOAT"
   } &= summary "The Exckel automatic summary programm"
     &= help "Available command line arguments. At least \"--wf\" and \"--exc\" must be specified."

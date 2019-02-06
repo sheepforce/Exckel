@@ -1,31 +1,32 @@
 import           Control.Applicative
 import           Control.Monad.IO.Class
-import           Data.Attoparsec.Text          hiding (take)
-import qualified Data.ByteString.Char8         as BS
-import qualified Data.ByteString.Lazy          as BL
+import           Data.Attoparsec.Text           hiding (take)
+import qualified Data.ByteString.Char8          as BS
+import qualified Data.ByteString.Lazy           as BL
 import           Data.Char
 import           Data.List
 import           Data.Maybe
-import qualified Data.Text                     as T
-import qualified Data.Text.IO                  as T
+import qualified Data.Text                      as T
+import qualified Data.Text.IO                   as T
 import           Exckel.CmdArgs
-import           Exckel.CubeGenerator.MultiWFN as CG.MWFN
-import           Exckel.CubePlotter.VMD        as CP.VMD
+import           Exckel.CubeGenerator.MultiWFN  as CG.MWFN
+import           Exckel.CubePlotter.VMD         as CP.VMD
 import           Exckel.DocumentCreator
 import           Exckel.EmbedContents
 import           Exckel.ExcUtils
-import           Exckel.Parser                 hiding (vmdState)
+import           Exckel.Parser                  hiding (vmdState)
+import qualified Exckel.SpectrumPlotter.Gnuplot as SP.GP
 import           Exckel.Types
 import           Lens.Micro.Platform
 import           Paths_Exckel
 import           System.Console.ANSI
-import           System.Console.CmdArgs        hiding (def)
+import           System.Console.CmdArgs         hiding (def)
 import           System.Directory
 import           System.FilePath
 import           System.IO
-import           Text.Pandoc                   hiding (FileInfo, def,
-                                                getDataFileName)
-import qualified Text.Pandoc                   as PD (def)
+import           Text.Pandoc                    hiding (FileInfo, def,
+                                                 getDataFileName)
+import qualified Text.Pandoc                    as PD (def)
 import           Text.Printf
 
 logMessage f s = printf "  %-70s : %-30s\n" f s
@@ -55,25 +56,29 @@ main = do
   arguments <- cmdArgs exckelArgs
   -- look for ImageMagicks executable on the system
   imageMagick <- findExecutable "convert"
+  -- look for gnuplot executable on the system
+  gnuplot <- findExecutable "gnuplot"
   -- make sure output directory exists
   hasOutDir <- doesDirectoryExist (outdir arguments)
   case hasOutDir of
-    True -> return ()
+    True  -> return ()
     False -> createDirectory (outdir arguments)
-  case imageMagick of
+  case (imageMagick, gnuplot) of
     -- if it is not present, dont continue
-    Nothing -> errMessage "Could not find imageMagick's \"convert\". Will abbort here."
+    (Nothing, _) -> errMessage "Could not find imageMagick's \"convert\". Will abbort here."
+    (_, Nothing) -> errMessage "Could not find gnuplot. Will abort here."
     -- if found, call checker for minimum input
-    Just e -> checkInitial e arguments
+    (Just convert, Just gnuplot) -> checkInitial (convert, gnuplot) arguments
 
 
 -- | Initial check if enough informations are provided and if everything requested makes sense. If
 -- | not print an error and exit. If yes, prepare FileInfo for further use and go for next step.
 -- | Expansion to absolute paths happening here for some records.
 -- |   imC -> path to ImageMagick's convert
+-- |   gnp -> path to Gnuplot
 -- |   a -> ExckelArgs data structure coming from the initial call
-checkInitial :: FilePath -> ExckelArgs -> IO ()
-checkInitial imC a = do
+checkInitial :: (FilePath, FilePath) -> ExckelArgs -> IO ()
+checkInitial (imC, gnp) a = do
   logHeader "----"
   logHeader "Initial file checks:"
   case (wf a, exc a) of
@@ -87,6 +92,8 @@ checkInitial imC a = do
             & waveFunctionFile .~ wfAP
             & outputPrefix .~ outPrefAP
             & imConvertExePath .~ imC
+            & spectrumPlotter . spExePath .~ gnp
+            & spectrumPlotter . spBroadening .~ fromMaybe 0.3 (fwhm a)
       logMessage "QC log file with excited states" (fileInfo ^. logFile)
       logMessage "Wavefunction file" (fileInfo ^. waveFunctionFile)
       logMessage "Work directoring" (fileInfo ^. outputPrefix)
@@ -141,7 +148,9 @@ getExcitedStates a fi = do
       logMessage "States remaining" (show . map (^. nState) $ eSfilterByFOsc)
       if (length eSfilterByFOsc <= 0)
         then errMessage "No states left to plot. Will exit here"
-        else doCubes a fi eSfilterByFOsc
+        else do
+          SP.GP.plotSpectrum fi eSfilterByS2 eSfilterByFOsc
+          doCubes a fi eSfilterByFOsc
 
 -- | Routine to calculate the cubes. Wraps the CubeGenerators. Jumps to next step if no cubes are to
 -- | be calculated.
