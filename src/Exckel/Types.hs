@@ -238,7 +238,7 @@ instance (Default ImageFiles) where
 data CalcSoftware = Gaussian deriving (Eq, Show)
 
 -- | Supported output formats for the excitation summary
-data PDDocType = DOCX | ODT deriving (Eq, Show)
+data PDDocType = DOCX | ODT | LATEX deriving (Eq, Show)
 
 -- | Relevant paths for the pandoc library to create an output document
 data PandocInfo = PandocInfo

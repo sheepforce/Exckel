@@ -27,8 +27,7 @@ data ExckelArgs = ExckelArgs
   , vmdTemplate    :: Maybe FilePath
   , multiwfn       :: Maybe FilePath
   , tachyon        :: Maybe FilePath
-  , docx           :: Bool
-  , odt            :: Bool
+  , pdFormat       :: String
   , panref         :: Maybe FilePath
   , pandir         :: Maybe FilePath
   , wf             :: Maybe FilePath
@@ -76,13 +75,9 @@ exckelArgs = ExckelArgs
                    &= help "Tachyon executable. Default is first tachyon executable found on system"
                    &= typFile
 
-  , docx           =  True
-                   &= help "Write output as docx."
-                   &= typ "BOOL"
-
-  , odt            =  False
-                   &= help "Write output as odt."
-                   &= typ "BOOL"
+  , pdFormat       =  "docx"
+                   &= help "Format of the summary to write with Pandoc. Any of [docx, odt, latex]"
+                   &= typ "STRING"
 
   , panref         =  Nothing
                    &= help "Reference docx with formatting hints."

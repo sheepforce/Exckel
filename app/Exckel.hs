@@ -295,6 +295,12 @@ doSummaryDocument a fi eS = do
       electronImageFilesIndexed = zip electronFileNumbers electronImageFiles
       holeImageFilesIndexed = zip holeFileNumbers holeImageFiles
       --
+      panFormat = case (pdFormat a) of
+        "docx" -> DOCX
+        "odt" -> ODT
+        "latex" -> LATEX
+        _ -> DOCX
+      --
       fileInfoWithImagesAndPandoc = fi
         & imageFiles . orbImages .~ Just orbImageFilesIndexed
         & imageFiles . cddImages .~ Just cddImageFilesIndexed
@@ -302,6 +308,8 @@ doSummaryDocument a fi eS = do
         & imageFiles . holeImages .~ Just holeImageFilesIndexed
         & pandocInfo . pdDataDir .~ absPanDir
         & pandocInfo . pdRefDoc .~ absPanRefDoc
+        & pandocInfo . pdDocType .~ panFormat
+  logMessage "Pandoc output format for summary" (show $ fileInfoWithImagesAndPandoc ^. pandocInfo . pdDocType)
   logMessage "Pandoc data directory" (fromMaybe "Not set (some formats might not work)" $ fileInfoWithImagesAndPandoc ^. pandocInfo . pdDataDir)
   logMessage "Pandoc reference document" (fromMaybe "Not set (default Pandoc formatting) "$ fileInfoWithImagesAndPandoc ^. pandocInfo . pdRefDoc)
   logMessage "Images for these orbitals available" (show $ map fst <$> fileInfoWithImagesAndPandoc ^. imageFiles . orbImages)
@@ -309,11 +317,11 @@ doSummaryDocument a fi eS = do
   logMessage "Electron images for these states available" (show $ map fst <$> fileInfoWithImagesAndPandoc ^. imageFiles . electronImages)
   logMessage "Hole images for these states available" (show $ map fst <$> fileInfoWithImagesAndPandoc ^. imageFiles . holeImages)
   --
+  let summary = excitationSummary fileInfoWithImagesAndPandoc eS
   case fileInfoWithImagesAndPandoc ^. pandocInfo . pdDocType of
     DOCX -> do
       logMessage "Summary document format" "Microsoft Word Document (docx)"
-      let summary = excitationSummary fileInfoWithImagesAndPandoc eS
-          refDocx = fileInfoWithImagesAndPandoc ^. pandocInfo . pdRefDoc
+      let refDocx = fileInfoWithImagesAndPandoc ^. pandocInfo . pdRefDoc
       summaryDoc <- runIO $ do
         setUserDataDir (fileInfoWithImagesAndPandoc ^. pandocInfo . pdDataDir)
         writeDocx PD.def {writerReferenceDoc = refDocx} summary
@@ -323,3 +331,29 @@ doSummaryDocument a fi eS = do
           logInfo "Writing document to \"summary.docx\""
           BL.writeFile
             ((fileInfoWithImagesAndPandoc ^. outputPrefix) ++ [pathSeparator] ++ "summary.docx") doc
+    ODT -> do
+      logMessage "Summary document format" "Open Document Text (odt)"
+      let refODT = fileInfoWithImagesAndPandoc ^. pandocInfo . pdRefDoc
+      summaryDoc <- runIO $ do
+        setUserDataDir (fileInfoWithImagesAndPandoc ^. pandocInfo . pdDataDir)
+        odtTemplate <- getDefaultTemplate "odt"
+        writeODT PD.def {writerReferenceDoc = refODT, writerTemplate = Just odtTemplate} summary
+      case summaryDoc of
+        Left err -> do
+          errMessage $ "Error occured during generation of the pandoc summary: " ++ show err
+          errMessage $ "Pandoc data directory must be set."
+        Right doc -> do
+          logInfo "Writing document to \"summary.odt\""
+          BL.writeFile
+            ((fileInfoWithImagesAndPandoc ^. outputPrefix) ++ [pathSeparator] ++ "summary.odt") doc
+    LATEX -> do
+      logMessage "Summary document format" "LATEX (tex)"
+      summaryDoc <- runIO $ do
+        setUserDataDir (fileInfoWithImagesAndPandoc ^. pandocInfo . pdDataDir)
+        writeLaTeX PD.def summary
+      case summaryDoc of
+        Left err -> errMessage $ "Error occured during generation of the pandoc summary: " ++ show err
+        Right doc -> do
+          logInfo "Writing document to \"summary.tex\". You can run your latex compiler on it."
+          T.writeFile
+            ((fileInfoWithImagesAndPandoc ^. outputPrefix) ++ [pathSeparator] ++ "summary.tex") doc
