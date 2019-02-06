@@ -254,7 +254,10 @@ doPlots a fi eS = do
               logMessage "Cube plotter" (fileInfoWithVMDAndTemplate ^. cubePlotter . cpExePath)
               logMessage "VMD state file with perspective" (fromMaybe "None (will use default perspective)" $ fileInfoWithVMDAndTemplate ^. cubePlotter . cpStateFile)
               logMessage "VMD start up file with general settings" (fromMaybe "None (will look for $HOME/.vmdrc and use defaults if non existant)" $ fileInfoWithVMDAndTemplate ^. cubePlotter . cpStartUp)
-              logMessage "VMD template script" (show $ fileInfoWithVMDAndTemplate ^. cubePlotter . cpTemplate)
+              logMessage "VMD template script" (case (vmdTemplate a) of
+                Nothing -> "None (using built in default)"
+                Just t -> t
+                )
               logMessage "Rendering engine" (fileInfoWithVMDAndTemplate ^. cubePlotter . cpRenderer . rExePath)
               logMessage "Rendering resolution" (show $ fileInfoWithVMDAndTemplate ^. cubePlotter . cpRenderer . rResolution)
               logMessage "Renderer image format" (show $ fileInfoWithVMDAndTemplate ^. cubePlotter . cpRenderer . rImageFormat)
@@ -350,10 +353,11 @@ doSummaryDocument a fi eS = do
       logMessage "Summary document format" "LATEX (tex)"
       summaryDoc <- runIO $ do
         setUserDataDir (fileInfoWithImagesAndPandoc ^. pandocInfo . pdDataDir)
-        writeLaTeX PD.def summary
+        texTemplate <- getDefaultTemplate "latex"
+        writeLaTeX PD.def {writerTemplate = Just texTemplate} summary
       case summaryDoc of
         Left err -> errMessage $ "Error occured during generation of the pandoc summary: " ++ show err
         Right doc -> do
-          logInfo "Writing document to \"summary.tex\". You can run your latex compiler on it."
+          logInfo "Writing document to \"summary.tex\". You can run xelatex on it."
           T.writeFile
             ((fileInfoWithImagesAndPandoc ^. outputPrefix) ++ [pathSeparator] ++ "summary.tex") doc
