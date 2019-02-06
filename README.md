@@ -128,8 +128,9 @@ If you would like to used ODT as the output format, the Pandoc data directory ne
 The finaly summary is written to the output directoy as `summary.*`.
 
 ### Example
+For a Gaussian calculation of benzene, where you have `Benzen.fchk` as the wavefunction and `Benzen.log` as the log file of the calculation and want to write a summary for all excited states with an oscillator strength > 0.1 as a docx.
 
-   exckel --wf=Benzen.fchk --exc=Benzen.log --outdir=exckel-out --foscfilter=0.1 --panformat=docx
+    exckel --wf=Benzen.fchk --exc=Benzen.log --outdir=exckel-out --foscfilter=0.1 --panformat=docx
 
 
 ## Installation
