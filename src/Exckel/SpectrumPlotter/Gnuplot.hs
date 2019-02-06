@@ -36,6 +36,20 @@ plotSpectrum fi es = do
   gnuLog <- hGetContents gnuplotOutput
   gnuErr <- hGetContents gnuplotError
 
+  hPutStrLn gnuplotInput $ unlines
+    [ "set grid"
+    , "set xrange [" ++ show eMin ++ ":" ++ show eMax ++ "]"
+    , "set link x2 via 1239.84197386209/x inverse 1239.84197386209/x"
+    , "set xlabel \"E / eV\""
+    , "set x2label \"{/Symbol l} / nm\""
+    , "set x2tics"
+    , "set ylabel \"f_{osc}\""
+    , "set link y2 via 1.3062974e8*x/(" ++ show σ ++ "* 8065.54400545911)"
+    --
+    , "exit"
+    ]
+
+
   hPutStrLn gnuplotLogFile gnuLog
   hPutStrLn gnuplotErrFile gnuErr
 
@@ -47,6 +61,7 @@ plotSpectrum fi es = do
   where
     outDir = fi ^. outputPrefix
     fwhm = fi ^. spectrumPlotter . spBroadening
+    σ = fwhm / (2 * sqrt(log 2))
     peaksEnergy = map hartree2eV . map (^. relEnergy) $ es
     peaksFOsc = map (^. oscillatorStrength) es
     peaks = zip peaksEnergy peaksFOsc
