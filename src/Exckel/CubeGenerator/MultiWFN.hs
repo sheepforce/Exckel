@@ -15,6 +15,7 @@ import           System.Process
 import           Text.Printf
 import Data.Maybe
 import System.FilePath
+import Data.List.Split
 
 -- | Given the file system informations, create orbital cubes for the relevant orbitals (given by
 -- | indices) and rename them to orbN.cube
@@ -41,9 +42,17 @@ calculateOrbs fi orbInds = do
 
   hPutStrLn mwfnInput "200" -- other functions
   hPutStrLn mwfnInput "3"   -- Generate cube file for multiple orbital wavefunctions
-  hPutStrLn mwfnInput $ printOrbList orbInds
-  hPutStrLn mwfnInput "3"   -- High quality grid
-  hPutStrLn mwfnInput "1"   -- Output the grid data of these orbitals as separate cube files
+  mapM_ (hPutStrLn mwfnInput) $
+    map (\o -> unlines
+          [ printOrbList o  -- chunks of 10 orbitals to be plotted
+          , "3"             -- High quality grid
+          , "1"             -- Output the grid data of these orbitals as separate cube files
+          ]
+        ) (chunksOf 10 orbInds)
+  -- hPutStrLn mwfnInput $ printOrbList orbInds
+  -- hPutStrLn mwfnInput "3"   -- High quality grid
+  -- hPutStrLn mwfnInput "1"   -- Output the grid data of these orbitals as separate cube files
+  hPutStrLn mwfnInput ""
   hPutStrLn mwfnInput "0"   -- Return (to main menu)
   hPutStrLn mwfnInput "-10" -- hidden option to exit gracefully in the main menu
 
