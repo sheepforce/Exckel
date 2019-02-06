@@ -254,7 +254,7 @@ doPlots a fi eS = do
               logMessage "Cube plotter" (fileInfoWithVMDAndTemplate ^. cubePlotter . cpExePath)
               logMessage "VMD state file with perspective" (fromMaybe "None (will use default perspective)" $ fileInfoWithVMDAndTemplate ^. cubePlotter . cpStateFile)
               logMessage "VMD start up file with general settings" (fromMaybe "None (will look for $HOME/.vmdrc and use defaults if non existant)" $ fileInfoWithVMDAndTemplate ^. cubePlotter . cpStartUp)
-              logMessage "VMD template script" (fileInfoWithVMDAndTemplate ^. cubePlotter . cpTemplate)
+              logMessage "VMD template script" (show $ fileInfoWithVMDAndTemplate ^. cubePlotter . cpTemplate)
               logMessage "Rendering engine" (fileInfoWithVMDAndTemplate ^. cubePlotter . cpRenderer . rExePath)
               logMessage "Rendering resolution" (show $ fileInfoWithVMDAndTemplate ^. cubePlotter . cpRenderer . rResolution)
               logMessage "Renderer image format" (show $ fileInfoWithVMDAndTemplate ^. cubePlotter . cpRenderer . rImageFormat)
