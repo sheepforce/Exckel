@@ -53,6 +53,10 @@ module Exckel.Types
 , pdDataDir
 , pdRefDoc
 , pdDocType
+, SpectrumPlotter(..)
+, spExePath
+, spERange
+, spBroadening
 , FileInfo(..)
 , logFile
 , calcSoftware
@@ -64,16 +68,17 @@ module Exckel.Types
 , imageFiles
 , imConvertExePath
 , pandocInfo
+, spectrumPlotter
 ) where
+import qualified Data.ByteString.Char8 as B
 import           Data.Maybe
+import qualified Data.Text             as T
 import           Data.Vector
+import           Exckel.EmbedContents
 import           Lens.Micro.Platform
 import           System.Directory
 import           System.IO
 import           System.IO.Unsafe
-import qualified Data.Text as T
-import qualified Data.ByteString.Char8 as B
-import Exckel.EmbedContents
 
 class (Default a) where
   def :: a
@@ -249,6 +254,20 @@ instance (Default PandocInfo) where
     , _pdDocType = DOCX
     }
 
+-- | Programm for plotting spectra and parameters for it
+data SpectrumPlotter =
+  Gnuplot
+    { _spExePath    :: FilePath
+    , _spERange     :: Maybe (Double, Double)
+    , _spBroadening :: Double
+    } deriving (Eq, Show)
+makeLenses ''SpectrumPlotter
+instance (Default SpectrumPlotter) where
+  def = Gnuplot
+    { _spExePath = "gnuplot"
+    , _spERange = Nothing
+    , _spBroadening = 0.3
+    }
 
 -- | FilePaths to files, given in absolute paths! Shall be expanded to absolute paths if only
 -- | specified as relative path during program execution.
@@ -263,6 +282,7 @@ data FileInfo = FileInfo
   , _imageFiles       :: ImageFiles
   , _imConvertExePath :: FilePath
   , _pandocInfo       :: PandocInfo
+  , _spectrumPlotter  :: SpectrumPlotter
   }
   deriving (Eq, Show)
 makeLenses ''FileInfo
@@ -278,4 +298,5 @@ instance (Default FileInfo) where
     , _imageFiles = def
     , _imConvertExePath = fromMaybe "convert" $ unsafePerformIO $ findExecutable "convert"
     , _pandocInfo = def
+    , _spectrumPlotter = def
     }

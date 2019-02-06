@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5219e8cea2bb34c039b61c91def82ff748f415708bb9b1d461e016efbb2a80e7
+-- hash: bac8e522306f379407de72b8875573e5126f2dd1cf213338caf0bc6e2101df90
 
 name:           Exckel
 version:        0.0.1.0
@@ -36,6 +36,7 @@ library
       Exckel.EmbedContents
       Exckel.ExcUtils
       Exckel.Parser
+      Exckel.SpectrumPlotter.Gnuplot
       Exckel.Types
   other-modules:
       Paths_Exckel

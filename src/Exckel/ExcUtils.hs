@@ -9,6 +9,7 @@ module Exckel.ExcUtils
 , oscStrength2Epsilon
 , eV2nm
 , nm2eV
+, hartree2eV
 , spinContaminationFractionOfHigherState
 , filterByS2
 , idealS2fromMult
@@ -86,6 +87,10 @@ eV2nm x = 1239.84197386209 / x
 -- | Convert from nano metre to electron Volt
 nm2eV :: Floating a => a -> a
 nm2eV = eV2nm
+
+-- | Convert energy from hartree to electron Volt
+hartree2eV :: Floating a => a -> a
+hartree2eV e = 27.21138602 * e
 
 -- | Get the fraction of the next higher spin state contributing to the current one from spin
 -- | contamination value
