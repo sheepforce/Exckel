@@ -29,7 +29,7 @@ excitationSummary :: FileInfo -> [ExcState] -> Pandoc
 excitationSummary fi es =
   (setTitle title)
   $ doc $
-    para (imageWith ("", ["align-left"], [("width", "10cm")]) spectrumPath "" "")
+    para (imageWith ("", ["align-center"], [("width", "15cm")]) spectrumPath "" "")
     <>
     table
        "Excited state summary" -- caption
