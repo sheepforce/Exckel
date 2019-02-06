@@ -18,6 +18,7 @@ import           Exckel.ExcUtils
 import           Exckel.Parser
 import           Exckel.Types           hiding (def)
 import           Lens.Micro.Platform
+import           System.FilePath
 import           Text.Pandoc            hiding (FileInfo)
 import           Text.Pandoc.Builder    hiding (FileInfo)
 import           Text.Printf
@@ -28,48 +29,53 @@ excitationSummary :: FileInfo -> [ExcState] -> Pandoc
 excitationSummary fi es =
   (setTitle title)
   $ doc $
-       table
-         "Excited state summary" -- caption
-         -- column alignments and width
-         [ (AlignCenter, 0.1)    -- state number
-         , (AlignCenter, 0.2)    -- orbital pairs
-         , (AlignRight, 0.125)   -- weight
-         , (AlignRight, 0.075)   -- energy
-         , (AlignRight, 0.1)     -- wavelength
-         , (AlignRight, 0.1)     -- oscillator strength
-         , (AlignCenter, 0.15)   -- hole
-         , (AlignCenter, 0.15)   -- electron
-         ]
-         -- heading of the table
-         [ header 1 "State"
-         , header 1 "Transition"
-         , header 1 "Weight / %"
-         , header 1 "E / eV"
-         , header 1 "λ / nm"
-         , header 1 "f_osc"
-         , header 1 "hole"
-         , header 1 "electron"
-         ]
-         -- generated summary for excitations
-         (tableContents es)
-    <> table
-         "Orbital"                        -- caption
-         (replicate 5 (AlignCenter, 0.2)) -- 5 columns
-         []                               -- empty headers
-         ( orbContents                    -- pictures of the orbitals
-             ( (^. nBasisFunctions) . head $ es)
-             ( case ((^. wfType) . head $ es) of
-                 Nothing                  -> False
-                 Just ClosedShell         -> False
-                 Just OpenShell           -> True
-                 Just RestrictedOpenShell -> True
-             )
+    para (imageWith ("", ["align-left"], [("width", "10cm")]) spectrumPath "" "")
+    <>
+    table
+       "Excited state summary" -- caption
+       -- column alignments and width
+       [ (AlignCenter, 0.1)    -- state number
+       , (AlignCenter, 0.2)    -- orbital pairs
+       , (AlignRight, 0.125)   -- weight
+       , (AlignRight, 0.075)   -- energy
+       , (AlignRight, 0.1)     -- wavelength
+       , (AlignRight, 0.1)     -- oscillator strength
+       , (AlignCenter, 0.15)   -- hole
+       , (AlignCenter, 0.15)   -- electron
+       ]
+       -- heading of the table
+       [ header 1 "State"
+       , header 1 "Transition"
+       , header 1 "Weight / %"
+       , header 1 "E / eV"
+       , header 1 "λ / nm"
+       , header 1 "f_osc"
+       , header 1 "hole"
+       , header 1 "electron"
+       ]
+       -- generated summary for excitations
+       (tableContents es)
+    <>
+    table
+      "Orbital"                        -- caption
+      (replicate 5 (AlignCenter, 0.2)) -- 5 columns
+      []                               -- empty headers
+      ( orbContents                    -- pictures of the orbitals
+         ( (^. nBasisFunctions) . head $ es)
+         ( case ((^. wfType) . head $ es) of
+             Nothing                  -> False
+             Just ClosedShell         -> False
+             Just OpenShell           -> True
+             Just RestrictedOpenShell -> True
          )
+      )
 
   where
     -- title of the Pandoc document
     title :: Many Inline
     title = fromList [Str ("Excited State Summary")]
+    -- hard coded name of the image file containing the spectrum
+    spectrumPath = (fi ^. outputPrefix) ++ [pathSeparator] ++ "Spectrum.png"
     -- create the [[Blocks]] scheme (rows first, columns second) required for the Pandoc table from
     -- excited state output
     tableContents :: [ExcState] -> [[Blocks]]
