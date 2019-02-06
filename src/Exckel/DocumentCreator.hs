@@ -29,7 +29,7 @@ excitationSummary :: FileInfo -> [ExcState] -> Pandoc
 excitationSummary fi es =
   (setTitle title)
   $ doc $
-    para (imageWith ("", ["align-center"], [("width", "15cm")]) spectrumPath "" "")
+    para (imageWith ("", ["align-center"], [("width", "17cm")]) spectrumPath "" "")
     <>
     table
        "Excited state summary" -- caption
@@ -88,17 +88,17 @@ excitationSummary fi es =
                  , para . text . printf "%6.4F" $ e ^. oscillatorStrength
                  , case (getCDDImageByType fi e holeImages) of
                      Nothing -> para . text $ ""
-                     Just (nState, imagePath) -> para $ imageWith ("", ["align-left"], [("width", "2.5cm")]) imagePath "" (text . ("hole " ++) . show $ nState)
+                     Just (nState, imagePath) -> para $ imageWith ("", ["align-center"], [("width", "2.2cm")]) imagePath "" (text . ("hole " ++) . show $ nState)
                  , case (getCDDImageByType fi e electronImages) of
                      Nothing -> para . text $ ""
-                     Just (nState, imagePath) -> para $ imageWith ("", ["align-left"], [("width", "2.5cm")]) imagePath "" (text . ("electron " ++) . show $ nState)
+                     Just (nState, imagePath) -> para $ imageWith ("", ["align-center"], [("width", "2.2cm")]) imagePath "" (text . ("electron " ++) . show $ nState)
                  ]
           ) excStates
     -- create a table of all orbital pictures
     orbContents :: Int -> Bool -> [[Blocks]]
     orbContents nBasFun isOpenShell =
       chunksOf 5 .
-      map (\i -> para (imageWith ("", ["align-left"], [("width", "2.5cm")]) (snd i) (show . fst $ i) (text . show . fst $ i))
+      map (\i -> para (imageWith ("", ["align-center"], [("width", "2.5cm")]) (snd i) (show . fst $ i) (text . show . fst $ i))
                  <>
                  para (text (orbNumberToSpinOrbNumber nBasFun isOpenShell . fst $ i))
           ) . fromMaybe [] $ fi ^. imageFiles . orbImages
