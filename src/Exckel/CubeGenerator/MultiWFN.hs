@@ -7,15 +7,15 @@ module Exckel.CubeGenerator.MultiWFN
 , calculateCDDs
 ) where
 import           Control.Monad
+import           Data.List.Split
+import           Data.Maybe
 import           Exckel.Types
 import           Lens.Micro.Platform
 import           System.Directory
+import           System.FilePath
 import           System.IO
 import           System.Process
 import           Text.Printf
-import Data.Maybe
-import System.FilePath
-import Data.List.Split
 
 -- | Given the file system informations, create orbital cubes for the relevant orbitals (given by
 -- | indices) and rename them to orbN.cube
@@ -41,10 +41,11 @@ calculateOrbs fi orbInds = do
   hSetBuffering mwfnErrFile LineBuffering
 
   hPutStrLn mwfnInput "200" -- other functions
-  hPutStrLn mwfnInput "3"   -- Generate cube file for multiple orbital wavefunctions
+  -- hPutStrLn mwfnInput "3"
   mapM_ (hPutStrLn mwfnInput) $
     map (\o -> unlines
-          [ printOrbList o  -- chunks of 10 orbitals to be plotted
+          [ "3"             -- Generate cube file for multiple orbital wavefunctions
+          , printOrbList o  -- chunks of 10 orbitals to be plotted
           , "3"             -- High quality grid
           , "1"             -- Output the grid data of these orbitals as separate cube files
           ]
