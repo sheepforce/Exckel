@@ -73,7 +73,7 @@ gaussianLogTDDFT = do
       fromOrbI' <- decimal
       fromOrbS' <- option Nothing (Just <$> (char 'A' <|> char 'B'))
       _ <- takeWhile isHorizontalSpace
-      _ <- string "->"
+      excDirection <- string "->" <|> string "<-"
       _ <- takeWhile isHorizontalSpace
       toOrbI' <- decimal
       toOrbS' <- option Nothing (Just <$> (char 'A' <|> char 'B'))
@@ -87,11 +87,19 @@ gaussianLogTDDFT = do
             _                    -> (Nothing, Nothing)
       return CIDeterminant
         { _excitationPairs =
-            [ OrbitalExcitation
-                { _fromOrb = (fromOrbI', spinFrom')
-                , _toOrb = (toOrbI', spinTo')
-                }
-            ]
+            case excDirection of
+              "->" -> -- excitation
+                [ OrbitalExcitation
+                    { _fromOrb = (fromOrbI', spinFrom')
+                    , _toOrb = (toOrbI', spinTo')
+                    }
+                ]
+              "<-" -> -- back excitation
+                [ OrbitalExcitation
+                    { _fromOrb = (toOrbI', spinTo')
+                    , _toOrb = (fromOrbI', spinFrom')
+                    }
+                ]
         , _coeff = coeff'
         }
     _ <- option "" $ do

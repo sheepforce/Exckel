@@ -107,22 +107,34 @@ excitationSummary fi es =
     ciEntry :: CIDeterminant -> String
     ciEntry ciD =
       concatMap (\x ->
-        -- fromOrb
-        (show (x ^. fromOrb . _1)) ++
-        (case (x ^. fromOrb . _2) of
-          Just s  -> if s == Alpha then "A" else "B"
-          Nothing -> ""
-        ) ++
-        " → " ++
-        (show (x ^. toOrb . _1)) ++
-        (case (x ^. toOrb . _2) of
-          Just s  -> if s == Alpha then "A" else "B"
-          Nothing -> ""
-        ) ++
+        pairString x ++
         if (length (ciD ^. excitationPairs) > 1)
           then " & "
           else ""
-      ) $ ciD ^. excitationPairs
+      )  $ ciD ^. excitationPairs
+    -- make nice to show string from a single orbital excitation
+    pairString :: OrbitalExcitation -> String
+    pairString oexc = orbString firstShow ++ arrow ++ orbString secondShow
+      where
+        originN = oexc ^. fromOrb . _1
+        originOrb = oexc ^. fromOrb
+        destinationN = oexc ^. toOrb . _1
+        destinationOrb = oexc ^. toOrb
+        (firstShow, secondShow, arrow) = if originN < destinationN
+          then (originOrb, destinationOrb, " → ")
+          else (destinationOrb, originOrb, " ← ")
+        spinString :: Maybe Spin -> String
+        spinString spin = case spin of
+          Nothing -> ""
+          Just s -> case s of
+            Alpha -> "A"
+            Beta -> "B"
+        orbString :: (Int, Maybe Spin) -> String
+        orbString o =
+          show (fst o) ++
+          spinString (snd o)
+
+
     -- CI wavefunction written by individual CI determinants (one per line), each line is a CI
     -- determinant
     manyCIEntry :: V.Vector CIDeterminant -> Blocks
