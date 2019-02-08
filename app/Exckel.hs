@@ -314,7 +314,7 @@ doSummaryDocument a fi eS = do
           return $ Just panrefFile
         _ -> return Nothing
   let fileInfoWithImagesAndPandoc = fi
-        & imageFiles . orbImages .~ Just orbImageFilesIndexed
+        & imageFiles . orbImages .~ Just (sortOn fst orbImageFilesIndexed)
         & imageFiles . cddImages .~ Just cddImageFilesIndexed
         & imageFiles . electronImages .~ Just electronImageFilesIndexed
         & imageFiles . holeImages .~ Just holeImageFilesIndexed
