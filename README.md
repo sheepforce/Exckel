@@ -27,38 +27,38 @@ exckelargs [OPTIONS]
 Available command line arguments. At least "--wf" and "--exc" must be
 specified.
 
-    Common flags:
-     --nocalccubes         Do not calculate cubes for orbitals and CDDs.
-     --norenderimages      Do not render images from cubes.
+      Common flags:
+       --nocalccubes         Do not calculate cubes for orbitals and CDDs.
+       --norenderimages      Do not render images from cubes.
     -o --outdir=DIR          Destination for all output files and existing
-                           cubes.
-     --vmd=FILE            VMD executable. Default is first vmd executable
-                           found on system.
-     --vmdstate=FILE       VMD visualisation state file. Used to determine
-                           perspective.
-     --vmdstartup=FILE     VMD script to set up general look. If none is
-                           specified, it will default to your vmdrc.
-     --vmdtemplate=FILE    VMD template script for plotting.
+                             cubes.
+       --vmd=FILE            VMD executable. Default is first vmd executable
+                             found on system.
+       --vmdstate=FILE       VMD visualisation state file. Used to determine
+                             perspective.
+       --vmdstartup=FILE     VMD script to set up general look. If none is
+                             specified, it will default to your vmdrc.
+       --vmdtemplate=FILE    VMD template script for plotting.
     -m --multiwfn=FILE       Multiwfn executable. Default is first Multiwfn
-                           executable found on system
+                             executable found on system
     -t --tachyon=FILE        Tachyon executable. Default is first tachyon
-                           executable found on system
-     --pdformat=STRING     Format of the summary to write with Pandoc. Any of
-                           [docx, odt, latex]
-     --panref=FILE         Reference docx with formatting hints.
-     --pandir=DIR          Pandoc data dir. Needed for serveral formats.
-     --wf=FILE             Wavefunction file (molden or fchk).
+                             executable found on system
+       --pdformat=STRING     Format of the summary to write with Pandoc. Any of
+                             [docx, odt, latex]
+       --panref=FILE         Reference docx with formatting hints.
+       --pandir=DIR          Pandoc data dir. Needed for serveral formats.
+       --wf=FILE             Wavefunction file (molden or fchk).
     -e --exc=FILE            Quantum chemistry software output file with
-                           excited state informations.
+                             excited state informations.
     -i --imgres=INT,INT      Image width x heigth for plotting of cubes.
     -s --s2filter=FLOAT      Filter excited states by contributions of next
-                           higher spin state (applies to plotting and summary).
-     --foscfilter=FLOAT    Filter excited states by minimum oscillator
-                           strength (applies only to summary document).
-     --fwhm=FLOAT          Full width at half maximum of the gaussian
-                           function used to convolute the stick spectrum.
-     --weightfilter=FLOAT  Minimum weight of an excitation to write to the
-                           summary. (default 0.01)
+                             higher spin state (applies to plotting and summary).
+       --foscfilter=FLOAT    Filter excited states by minimum oscillator
+                             strength (applies only to summary document).
+       --fwhm=FLOAT          Full width at half maximum of the gaussian
+                             function used to convolute the stick spectrum.
+       --weightfilter=FLOAT  Minimum weight of an excitation to write to the
+                             summary. (default 0.01)
     -? --help                Display help message
     -V --version             Print version information
 
