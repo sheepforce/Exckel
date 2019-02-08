@@ -73,3 +73,4 @@ executables:
       - pandoc >= 2.5
       - bytestring >= 0.10.8.2
       - ansi-terminal >= 0.8.2
+      - vector >= 0.12.0.2

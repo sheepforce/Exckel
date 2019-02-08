@@ -36,6 +36,7 @@ data ExckelArgs = ExckelArgs
   , s2Filter       :: Maybe Double
   , foscFilter     :: Maybe Double
   , fwhm           :: Maybe Double
+  , weightfilter   :: Double
   } deriving (Show, Data, Typeable)
 
 exckelArgs = ExckelArgs
@@ -109,6 +110,9 @@ exckelArgs = ExckelArgs
 
   , fwhm           =  Nothing
                    &= help "Full width at half maximum of the gaussian function used to convolute the stick spectrum."
+                   &= typ "FLOAT"
+  , weightfilter   =  0.01
+                   &= help "Minimum weight of an excitation to write to the summary. (default 0.01)"
                    &= typ "FLOAT"
   } &= summary "The Exckel automatic summary programm"
     &= help "Available command line arguments. At least \"--wf\" and \"--exc\" must be specified."

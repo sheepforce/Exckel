@@ -23,41 +23,44 @@ Exckel is a command line programm and can be easily called from a bash script or
 
 By calling `exckel --help`, a quick explanation of all possible keywords is provided.
 
-    exckelargs [OPTIONS]
-      Available command line arguments. At least "--wf" and "--exc" must be
-      specified.
+exckelargs [OPTIONS]
+Available command line arguments. At least "--wf" and "--exc" must be
+specified.
 
     Common flags:
-         --nocalccubes       Do not calculate cubes for orbitals and CDDs.
-         --norenderimages    Do not render images from cubes.
-      -o --outdir=DIR        Destination for all output files and existing cubes.
-         --vmd=FILE          VMD executable. Default is first vmd executable
-                             found on system.
-         --vmdstate=FILE     VMD visualisation state file. Used to determine
-                             perspective.
-         --vmdstartup=FILE   VMD script to set up general look. If none is
-                             specified, it will default to your vmdrc.
-         --vmdtemplate=FILE  VMD template script for plotting.
-      -m --multiwfn=FILE     Multiwfn executable. Default is first Multiwfn
-                             executable found on system
-      -t --tachyon=FILE      Tachyon executable. Default is first tachyon
-                             executable found on system
-         --pdformat=STRING   Format of the summary to write with Pandoc. Any of
-                             [docx, odt, latex]
-         --panref=FILE       Reference docx with formatting hints.
-         --pandir=DIR        Pandoc data dir. Needed for serveral formats.
-      -w --wf=FILE           Wavefunction file (molden or fchk).
-      -e --exc=FILE          Quantum chemistry software output file with excited
-                             state informations.
-      -i --imgres=INT,INT    Image width x heigth for plotting of cubes.
-      -s --s2filter=FLOAT    Filter excited states by contributions of next
-                             higher spin state (applies to plotting and summary).
-         --foscfilter=FLOAT  Filter excited states by minimum oscillator strength
-                             (applies only to summary document).
-         --fwhm=FLOAT        Full width at half maximum of the gaussian function
-                             used to convolute the stick spectrum.
-      -? --help              Display help message
-      -V --version           Print version information
+     --nocalccubes         Do not calculate cubes for orbitals and CDDs.
+     --norenderimages      Do not render images from cubes.
+    -o --outdir=DIR          Destination for all output files and existing
+                           cubes.
+     --vmd=FILE            VMD executable. Default is first vmd executable
+                           found on system.
+     --vmdstate=FILE       VMD visualisation state file. Used to determine
+                           perspective.
+     --vmdstartup=FILE     VMD script to set up general look. If none is
+                           specified, it will default to your vmdrc.
+     --vmdtemplate=FILE    VMD template script for plotting.
+    -m --multiwfn=FILE       Multiwfn executable. Default is first Multiwfn
+                           executable found on system
+    -t --tachyon=FILE        Tachyon executable. Default is first tachyon
+                           executable found on system
+     --pdformat=STRING     Format of the summary to write with Pandoc. Any of
+                           [docx, odt, latex]
+     --panref=FILE         Reference docx with formatting hints.
+     --pandir=DIR          Pandoc data dir. Needed for serveral formats.
+     --wf=FILE             Wavefunction file (molden or fchk).
+    -e --exc=FILE            Quantum chemistry software output file with
+                           excited state informations.
+    -i --imgres=INT,INT      Image width x heigth for plotting of cubes.
+    -s --s2filter=FLOAT      Filter excited states by contributions of next
+                           higher spin state (applies to plotting and summary).
+     --foscfilter=FLOAT    Filter excited states by minimum oscillator
+                           strength (applies only to summary document).
+     --fwhm=FLOAT          Full width at half maximum of the gaussian
+                           function used to convolute the stick spectrum.
+     --weightfilter=FLOAT  Minimum weight of an excitation to write to the
+                           summary. (default 0.01)
+    -? --help                Display help message
+    -V --version             Print version information
 
 At least `--wf` and `--exc` must be set and point to your wavefunction file respective your quantum chemistry output file (with excited state information).
 
@@ -69,6 +72,7 @@ An explanation of the workflow and the effects of the parameters follows.
 *Relevant arguments:*
   - `--s2filter`
   - `--foscfilter`
+  - `--weightfilter`
   - `--fwhm`
 
 Exckel starts by parsing the quantum chemistry log file and looks for the informations regarding excitations, multiplicity, number of basis functions and so on.
@@ -76,6 +80,8 @@ Exckel starts by parsing the quantum chemistry log file and looks for the inform
 From the $<S^2>$ value of an excited state, one can calculate the contribution of the next higher spin state as a fractional amount. The excited states can be filtered by their spin state purity. As an example lets assume the multiplicity of your reference wavefunction was a triplet ($S = 1$). The  $<S^2>$ value of a pure spin state should be $<S^2> = S * (S + 1) = 2$. From the true $<S^2>$ value of the excited state, the contributions of the quintetts to the state can be calculated. If the fractional contribution of the quintett is higher than the value specified with `--s2filter`, the state will be discarded completely and not used to plot the spectrum, nor will it appear in the summary table, nor will cubes and images for it be calculated.
 
 Excited states can also be filtered by a minimum oscillator strength with `--foscfilter`. States discarded by this filter will still contribute to the spectrum, but will not appear in the summary table and CDDs and orbitals will not be calculate for this state.
+
+If you use a very verbose output (small coefficients printed), you can restrict the number of CI determinants printed in the summary with `--weightfilter`. This will influence the summary table and the orbital cubes, that need to be calculated.
 
 Gnuplot is then used to plot the spectrum (remaining states after `--s2filter`) and save it to `Spectrum.png` in the output directory. A convolution of the stick spectrum is done by gaussian functions, for which the full width at half maximum can be specified with `--fwhm` (in electron Volt).
 

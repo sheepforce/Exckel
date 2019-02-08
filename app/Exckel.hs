@@ -15,6 +15,7 @@ import           Data.List
 import           Data.Maybe
 import qualified Data.Text                      as T
 import qualified Data.Text.IO                   as T
+import qualified Data.Vector                    as V
 import           Exckel.CmdArgs
 import           Exckel.CubeGenerator.MultiWFN  as CG.MWFN
 import           Exckel.CubePlotter.VMD         as CP.VMD
@@ -167,6 +168,13 @@ doCubes :: ExckelArgs -> FileInfo -> [ExcState]-> IO ()
 doCubes a fi eS = do
   logHeader "\n----"
   logHeader "Calculating cube data:"
+  let -- filter the CI determinants of the excited states by weights of excitations, so
+      -- that only excitations with a high weight remain
+      weightFilteredCIDeterminants =
+        map (V.filter (\d -> d ^. weight >= weightfilter a)) $
+        map (^. ciWavefunction) eS
+      weightFilteredExcStates = zipWith (\e d -> e & ciWavefunction .~ d) eS weightFilteredCIDeterminants
+  logMessage "Filtering CI determinants by minimum weights" (show $ weightfilter a)
   logMessage
     "Calculate cubes"
     ( if (nocalccubes a)
@@ -191,10 +199,10 @@ doCubes a fi eS = do
               logMessage "CubeCalculator" (fileInfo ^. cubeGenerator . cgExePath)
               logMessage "Orbitals to plot" (show . nub . concat . map getOrbNumbers $ eS)
               logInfo "Calculating orbital cubes. See \"MultiWFN.out\" and \"MultiWFN.err\""
-              CG.MWFN.calculateOrbs fileInfo (nub . concat . map getOrbNumbers $ eS)
+              CG.MWFN.calculateOrbs fileInfo (nub . concat . map getOrbNumbers $ weightFilteredExcStates)
               logInfo "Calculating CDDs. See \"MultiWFN.out\" and \"MultiWFN.err\""
               CG.MWFN.calculateCDDs fileInfo (map (^. nState) eS)
-  doPlots a fi eS
+  doPlots a fi weightFilteredExcStates
 
 -- | Call plotter to visualise all cubes found.
 doPlots :: ExckelArgs -> FileInfo -> [ExcState] -> IO ()
@@ -256,7 +264,7 @@ doPlots a fi eS = do
               logMessage "VMD start up file with general settings" (fromMaybe "None (will look for $HOME/.vmdrc and use defaults if non existant)" $ fileInfoWithVMDAndTemplate ^. cubePlotter . cpStartUp)
               logMessage "VMD template script" (case (vmdTemplate a) of
                 Nothing -> "None (using built in default)"
-                Just t -> t
+                Just t  -> t
                 )
               logMessage "Rendering engine" (fileInfoWithVMDAndTemplate ^. cubePlotter . cpRenderer . rExePath)
               logMessage "Rendering resolution" (show $ fileInfoWithVMDAndTemplate ^. cubePlotter . cpRenderer . rResolution)
@@ -293,10 +301,10 @@ doSummaryDocument a fi eS = do
       holeImageFilesIndexed = zip holeFileNumbers holeImageFiles
       --
       panFormat = case (pdFormat a) of
-        "docx" -> DOCX
-        "odt" -> ODT
+        "docx"  -> DOCX
+        "odt"   -> ODT
         "latex" -> LATEX
-        _ -> DOCX
+        _       -> DOCX
   --
   absPanDir <- case (pandir a) of
     Nothing  -> return Nothing
