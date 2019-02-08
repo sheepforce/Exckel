@@ -100,7 +100,7 @@ gaussianLogTDDFT = do
                     , _toOrb = (fromOrbI', spinFrom')
                     }
                 ]
-        , _coeff = coeff'
+        , _weight = (coeff')**2.0
         }
     _ <- option "" $ do
       _ <- string " This state for optimization and/or second-order correction."
@@ -109,6 +109,9 @@ gaussianLogTDDFT = do
       _ <- takeWhile (not <$> isEndOfLine)
       endOfLine
       return ""
+    let weightScaleFactor = if wfType' == Just ClosedShell
+          then 2.0
+          else 1.0
     return ExcState
       { _nState             = nState'
       , _multiplicity       = multiplicity'
@@ -116,7 +119,7 @@ gaussianLogTDDFT = do
       , _s2                 = Just s2'
       , _relEnergy          = energyElectronVolt' / 27.21138602
       , _oscillatorStrength = oscillatorStrength'
-      , _ciWavefunction     = V.fromList ciWavefunction'
+      , _ciWavefunction     = V.fromList $ map (& weight %~ (weightScaleFactor *)) ciWavefunction'
       , _nBasisFunctions    = nBasisFunctions'
       }
   return states'

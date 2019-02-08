@@ -13,7 +13,7 @@ module Exckel.Types
 , toOrb
 , CIDeterminant(..)
 , excitationPairs
-, coeff
+, weight
 , WFType(..)
 , ExcState(..)
 , nState
@@ -99,11 +99,11 @@ makeLenses ''OrbitalExcitation
 -- | for a doubles determinant, ...) and a weight, with which it contributes to the CI wavefunction
 data CIDeterminant = CIDeterminant
   { _excitationPairs :: [OrbitalExcitation]
-  , _coeff           :: Double
+  , _weight          :: Double
   } deriving (Eq, Show)
 makeLenses ''CIDeterminant
 
-data WFType = ClosedShell | OpenShell | RestrictedOpenShell deriving (Show)
+data WFType = ClosedShell | OpenShell | RestrictedOpenShell deriving (Show, Eq)
 
 -- | From the reference determinant (usually DFT or HF), an excited state is formed by a CI
 -- | wavefunction. The state is characterized by its position relative to the ground state

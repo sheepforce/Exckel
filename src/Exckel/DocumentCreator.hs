@@ -46,7 +46,7 @@ excitationSummary fi es =
        -- heading of the table
        [ header 1 "State"
        , header 1 "Transition"
-       , header 1 "Weight / %"
+       , header 1 "Weight"
        , header 1 "E / eV"
        , header 1 "λ / nm"
        , header 1 "f_osc"
@@ -141,7 +141,7 @@ excitationSummary fi es =
     manyCIEntry ciDs = lineBlock . map text . V.toList . V.map ciEntry $ ciDs
     -- for a CI determinant give the weight in the complete CI wavefunction
     weightEntry :: CIDeterminant -> String
-    weightEntry ciD = printf "%6.4F"(ciD ^. coeff)
+    weightEntry ciD = printf "%6.4F"(ciD ^. weight)
     -- line by line the weights of the CI determinants in the CI wavefunction
     manyWeightEntry :: V.Vector CIDeterminant -> Blocks
     manyWeightEntry ciDs = lineBlock . map text . V.toList . V.map weightEntry $ ciDs
