@@ -23,44 +23,43 @@ Exckel is a command line programm and can be easily called from a bash script or
 
 By calling `exckel --help`, a quick explanation of all possible keywords is provided.
 
-exckelargs [OPTIONS]
-Available command line arguments. At least "--wf" and "--exc" must be
-specified.
+    exckelargs [OPTIONS]
+      Available command line arguments. At least "--wf" and "--exc" must be
+      specified.
 
-      Common flags:
-       --nocalccubes         Do not calculate cubes for orbitals and CDDs.
-       --norenderimages      Do not render images from cubes.
-    -o --outdir=DIR          Destination for all output files and existing
-                             cubes.
-       --vmd=FILE            VMD executable. Default is first vmd executable
-                             found on system.
-       --vmdstate=FILE       VMD visualisation state file. Used to determine
-                             perspective.
-       --vmdstartup=FILE     VMD script to set up general look. If none is
-                             specified, it will default to your vmdrc.
-       --vmdtemplate=FILE    VMD template script for plotting.
-    -m --multiwfn=FILE       Multiwfn executable. Default is first Multiwfn
-                             executable found on system
-    -t --tachyon=FILE        Tachyon executable. Default is first tachyon
-                             executable found on system
-       --pdformat=STRING     Format of the summary to write with Pandoc. Any of
-                             [docx, odt, latex]
-       --panref=FILE         Reference docx with formatting hints.
-       --pandir=DIR          Pandoc data dir. Needed for serveral formats.
-       --wf=FILE             Wavefunction file (molden or fchk).
-    -e --exc=FILE            Quantum chemistry software output file with
-                             excited state informations.
-    -i --imgres=INT,INT      Image width x heigth for plotting of cubes.
-    -s --s2filter=FLOAT      Filter excited states by contributions of next
-                             higher spin state (applies to plotting and summary).
-       --foscfilter=FLOAT    Filter excited states by minimum oscillator
-                             strength (applies only to summary document).
-       --fwhm=FLOAT          Full width at half maximum of the gaussian
-                             function used to convolute the stick spectrum.
-       --weightfilter=FLOAT  Minimum weight of an excitation to write to the
-                             summary. (default 0.01)
-    -? --help                Display help message
-    -V --version             Print version information
+    Common flags:
+         --nocalccubes         Do not calculate cubes for orbitals and CDDs.
+         --norenderimages      Do not render images from cubes.
+      -o --outdir=DIR          Destination for all output files and existing
+                               cubes.
+         --vmd=FILE            VMD executable. Default is first vmd executable
+                               found on system.
+         --vmdstate=FILE       VMD visualisation state file. Used to determine
+                               perspective.
+         --vmdstartup=FILE     VMD script to set up general look. If none is
+                               specified, it will default to your vmdrc.
+         --vmdtemplate=FILE    VMD template script for plotting.
+      -m --multiwfn=FILE       Multiwfn executable. Default is first Multiwfn
+                               executable found on system
+      -t --tachyon=FILE        Tachyon executable. Default is first tachyon
+                               executable found on system
+         --pdformat=STRING     Format of the summary to write with Pandoc. Any of
+                               [docx, odt, latex]
+         --panref=FILE         Reference docx with formatting hints.
+         --wf=FILE             Wavefunction file (molden or fchk).
+      -e --exc=FILE            Quantum chemistry software output file with
+                               excited state informations.
+      -i --imgres=INT,INT      Image width x heigth for plotting of cubes.
+      -s --s2filter=FLOAT      Filter excited states by contributions of next
+                               higher spin state (applies to plotting and summary).
+         --foscfilter=FLOAT    Filter excited states by minimum oscillator
+                               strength (applies only to summary document).
+         --fwhm=FLOAT          Full width at half maximum of the gaussian
+                               function used to convolute the stick spectrum.
+         --weightfilter=FLOAT  Minimum weight of an excitation to write to the
+                               summary. (default 0.01)
+      -? --help                Display help message
+      -V --version             Print version information
 
 At least `--wf` and `--exc` must be set and point to your wavefunction file respective your quantum chemistry output file (with excited state information).
 
@@ -123,13 +122,10 @@ VMD is called, writes input files for Tachyon (`*.dat`) and Tachyon (executable 
   - `--outdir`
   - `--pdformat`
   - `--panref`
-  - `--pandir`
 
 From everything that is available up to now, the summary document will be created by [Pandoc](http://hackage.haskell.org/package/pandoc). You can choose to get the output as Microsoft Word docx (`--pdformat=docx`), as a LibreOffice/OpenOffice compatible Open Document Text odt (`pdformat=odt`) or as LaTeX source code (`pdformat=latex`).
 
 The exact formatting of the output document depends on reference documents (`--panref`) in the case of ODT and DOCX files. If `--panref` is specified and points to a .docx or .odt document with formatting hints, these will be used. Otherwise a default is provided (and included in the executable, thanks TemplateHaskell) and automatically used.
-
-If you would like to used ODT as the output format, the Pandoc data directory needs to be available and the path to it specified by `--pandir`.
 
 The finaly summary is written to the output directoy as `summary.*`.
 
@@ -158,13 +154,6 @@ Installation of the external programs is up to you. Installation of them is quit
 - If you want to use ODT or LaTeX output [Pandoc](https://github.com/jgm/pandoc)
 - If building from source [Haskell's Stack](https://docs.haskellstack.org/en/stable/README/)
   - Can be easily installed as a binary without any knowledge of Haskell
-
-If you need ODT or LaTeX outputs, you will need the Pandoc data directory, which contains necessary templates for these formats. This can be obtained from the git repository of Pandoc:
-
-    git clone https://github.com/jgm/pandoc.git
-    cp pandoc-master/data $DEST
-
-Copy the data directory from Pandoc to a persistent destination of your choice and point `--pandir` to it at runtime.
 
 ### Building from Source
 Clone the repository from git, use stack to install everything.
