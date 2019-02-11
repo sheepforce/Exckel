@@ -11,7 +11,7 @@ Exckel generates documents to summarise and visualise the results of excited sta
 Exckel is completely written in Haskell, but basically it glues together existing solutions for the individual tasks.
 
 - *Quantum chemistry software supported:*
-  - [Gaussian](gaussian.com) TDDFT/CIS
+  - [Gaussian](gaussian.com) TDDFT/CIS (requires `#p`)
 - *Cube calculator:*
   - [Multiwfn](http://sobereva.com/multiwfn/) (tested with 3.5, gMultiwfn 3.4.1)
 - *Cube renderer:*
