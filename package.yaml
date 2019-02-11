@@ -47,6 +47,13 @@ library:
     - split >= 0.2.2.3
   default-extensions:
     - OverloadedStrings
+  ghc-options:
+    - -optP-Wno-nonportable-include-path
+    # - -static
+    # - -fPIC
+    # - -optl-static
+    # - -optl-pthread
+    #- -optc-static
 
 executables:
   exckel:
@@ -56,12 +63,12 @@ executables:
       - -threaded
       - -rtsopts
       - -with-rtsopts=-N
-      # enable these for completely static build
-      #- -static
-      #- -fPIC
+      - -optP-Wno-nonportable-include-path
+      # - -static
+      # - -fPIC
+      # - -optl-static
+      # - -optl-pthread
       #- -optc-static
-      #- -optl-static
-      #- -optl-pthread
     dependencies:
       - Exckel
       - cmdargs >= 0.10.20

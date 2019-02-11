@@ -1,10 +1,10 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.0.
+-- This file has been generated from package.yaml by hpack version 0.31.1.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 6feafb4ec46407ba7a27d78df6ed7fd6d0f5345cc2712d6a6051a7ff56d0f42a
+-- hash: f1b2e517d9e0f43c2c57e7b1462e790eab7ddf33ab12b607316ca40369a71d23
 
 name:           Exckel
 version:        0.0.1.0
@@ -45,6 +45,7 @@ library
   hs-source-dirs:
       src
   default-extensions: OverloadedStrings
+  ghc-options: -optP-Wno-nonportable-include-path
   build-depends:
       attoparsec >=0.13.2.2
     , base >=4.7 && <5
@@ -71,7 +72,7 @@ executable exckel
       Paths_Exckel
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -optP-Wno-nonportable-include-path
   build-depends:
       Exckel
     , ansi-terminal >=0.8.2
