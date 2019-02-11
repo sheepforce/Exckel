@@ -50,7 +50,6 @@ module Exckel.Types
 , CalcSoftware(..)
 , PDDocType(..)
 , PandocInfo(..)
-, pdDataDir
 , pdRefDoc
 , pdDocType
 , SpectrumPlotter(..)
@@ -242,15 +241,13 @@ data PDDocType = DOCX | ODT | LATEX deriving (Eq, Show)
 
 -- | Relevant paths for the pandoc library to create an output document
 data PandocInfo = PandocInfo
-  { _pdDataDir :: Maybe FilePath
-  , _pdRefDoc  :: Maybe FilePath
+  { _pdRefDoc  :: Maybe FilePath
   , _pdDocType :: PDDocType
   } deriving (Eq, Show)
 makeLenses ''PandocInfo
 instance (Default PandocInfo) where
   def = PandocInfo
-    { _pdDataDir = Nothing
-    , _pdRefDoc = Nothing
+    { _pdRefDoc = Nothing
     , _pdDocType = DOCX
     }
 

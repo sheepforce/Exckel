@@ -29,7 +29,6 @@ data ExckelArgs = ExckelArgs
   , tachyon        :: Maybe FilePath
   , pdFormat       :: String
   , panref         :: Maybe FilePath
-  , pandir         :: Maybe FilePath
   , wf             :: Maybe FilePath
   , exc            :: Maybe FilePath
   , imgres         :: (Int, Int)
@@ -83,10 +82,6 @@ exckelArgs = ExckelArgs
   , panref         =  Nothing
                    &= help "Reference docx with formatting hints."
                    &= typFile
-
-  , pandir         =  Nothing
-                   &= help "Pandoc data dir. Needed for serveral formats."
-                   &= typDir
 
   , wf             =  Nothing
                    &= help "Wavefunction file (molden or fchk)."
