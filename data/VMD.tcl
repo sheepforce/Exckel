@@ -74,7 +74,12 @@ foreach Dens [list {{ cdddens }}] {
 
   # draw positive and negative isosurface for the orbitals
   mol material Glass2
-  mol color ColorID 0
+  # check if this is a hole and change color for holes to the one of the negative isosurface
+  if {[string match */hole* ${Dens}]} {
+      mol color ColorID 3
+  } else {
+      mol color ColorID 0
+  }
   mol representation Isosurface $IsoDens  0 0 0 1 1
   mol addrep $Iter
 
