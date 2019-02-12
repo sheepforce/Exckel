@@ -36,6 +36,7 @@ data ExckelArgs = ExckelArgs
   , foscFilter     :: Maybe Double
   , fwhm           :: Maybe Double
   , weightfilter   :: Double
+  , energyfilter   :: Maybe (Double, Double)
   } deriving (Show, Data, Typeable)
 
 exckelArgs = ExckelArgs
@@ -106,8 +107,13 @@ exckelArgs = ExckelArgs
   , fwhm           =  Nothing
                    &= help "Full width at half maximum of the gaussian function used to convolute the stick spectrum."
                    &= typ "FLOAT"
+
   , weightfilter   =  0.01
                    &= help "Minimum weight of an excitation to write to the summary. (default 0.01)"
                    &= typ "FLOAT"
+
+  , energyfilter   =  Nothing
+                   &= help "Energy range (eV) of the excited states of interest and plot range for spectrum."
+                   &= typ "FLOAT,FLOAT"
   } &= summary "The Exckel automatic summary programm"
     &= help "Available command line arguments. At least \"--wf\" and \"--exc\" must be specified."

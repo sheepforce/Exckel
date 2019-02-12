@@ -18,8 +18,8 @@ import           Text.Printf
 
 -- | Plots the spectrum to a png file. Uses the informations about excited states. It takes
 -- |   - fi -> the FileInfo data type for paths
--- |   - es -> a list of excited states (should be the ones filtered by S**2 value). Will plot the
--- |           the spectrum from all of these states
+-- |   - es -> a list of excited states (should be the ones filtered by S**2 value and energy range).
+-- |           Will plot the spectrum from all of these states
 -- |   - fes -> a list of excited states filtered by oscillator strength (should be a subset of es
 -- |            and the states filtered by oscillator strength AND S**2 value from the CLI)
 plotSpectrum :: FileInfo -> [ExcState] -> [ExcState] -> IO ()
@@ -69,6 +69,7 @@ plotSpectrum fi es fes = do
     , "     \"" ++ outDir ++ [pathSeparator] ++ "Spectrum_Filtered_Peaks.dat" ++ "\" using 1:2:3 with labels offset char 0,1 notitle"
     , "exit"
     ]
+  print (eMin, eMax)
 
   hPutStrLn gnuplotLogFile gnuLog
   hPutStrLn gnuplotErrFile gnuErr

@@ -149,18 +149,23 @@ getExcitedStates a fi = do
       let eSfilterByS2 = case (s2Filter a) of
             Nothing      -> eS
             Just contrib -> filterByS2 contrib eS
+          eSfilterByEnergy = case (energyfilter a) of
+            Nothing           -> eSfilterByS2
+            Just (minE, maxE) -> filter (\x -> (hartree2eV $ x ^. relEnergy) >= minE && (hartree2eV $ x ^. relEnergy) <= maxE) eSfilterByS2
           eSfilterByFOsc = case (foscFilter a) of
-            Nothing -> eSfilterByS2
-            Just strength -> filter (\x -> (x ^. oscillatorStrength) >= strength) eSfilterByS2
+            Nothing       -> eSfilterByEnergy
+            Just strength -> filter (\x -> (x ^. oscillatorStrength) >= strength) eSfilterByEnergy
+          fileInfoWithPlotRange = fi & spectrumPlotter . spERange .~ (energyfilter a)
       logMessage "Number of removed states due to <S**2> deviation" (show $ length eS - length eSfilterByS2)
-      logMessage "Number of removed states due to oscillator strength cutoff" (show $ length eSfilterByS2 - length eSfilterByFOsc)
+      logMessage "Number of removed states due to energy range" (show $ length eSfilterByS2 - length eSfilterByEnergy)
+      logMessage "Number of removed states due to oscillator strength cutoff" (show $ length eSfilterByEnergy - length eSfilterByFOsc)
       logMessage "States remaining" (show . map (^. nState) $ eSfilterByFOsc)
       if (length eSfilterByFOsc <= 0)
         then errMessage "No states left to plot. Will exit here"
         else do
           logInfo $ "Plotting spectrum as Spectrum.png. See Gnuplot.out and Gnuplot.err"
-          SP.GP.plotSpectrum fi eSfilterByS2 eSfilterByFOsc
-          doCubes a fi eSfilterByFOsc
+          SP.GP.plotSpectrum fileInfoWithPlotRange eSfilterByS2 eSfilterByFOsc
+          doCubes a fileInfoWithPlotRange eSfilterByFOsc
 
 -- | Routine to calculate the cubes. Wraps the CubeGenerators. Jumps to next step if no cubes are to
 -- | be calculated.
