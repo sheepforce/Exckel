@@ -69,7 +69,6 @@ plotSpectrum fi es fes = do
     , "     \"" ++ outDir ++ [pathSeparator] ++ "Spectrum_Filtered_Peaks.dat" ++ "\" using 1:2:3 with labels offset char 0,1 notitle"
     , "exit"
     ]
-  print (eMin, eMax)
 
   hPutStrLn gnuplotLogFile gnuLog
   hPutStrLn gnuplotErrFile gnuErr
