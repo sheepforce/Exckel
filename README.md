@@ -62,6 +62,8 @@ By calling `exckel --help`, a quick explanation of all possible keywords is prov
                                      the summary. (default 0.01)
          --energyfilter=FLOAT,FLOAT  Energy range (eV) of the excited states of
                                      interest and plot range for spectrum.
+         --states=[INT]              Plot specific states and ignore all other
+                                     criteria in the summary. Give as "[a,b,c]"
       -? --help                      Display help message
       -V --version                   Print version information
 
@@ -78,6 +80,7 @@ An explanation of the workflow and the effects of the parameters follows.
   - `--weightfilter`
   - `--energyfilter`
   - `--fwhm`
+  - `--states`
 
 Exckel starts by parsing the quantum chemistry log file and looks for the informations regarding excitations, multiplicity, number of basis functions and so on.
 
@@ -88,6 +91,8 @@ Excited states can also be filtered by a minimum oscillator strength with `--fos
 If you use a very verbose output (small coefficients printed), you can restrict the number of CI determinants printed in the summary with `--weightfilter`. This will influence the summary table and the orbital cubes, that need to be calculated.
 
 Gnuplot is then used to plot the spectrum (remaining states after `--s2filter` and within `--energyfilter` (in eV)) and save it to `Spectrum.png` in the output directory. A convolution of the stick spectrum is done by gaussian functions, for which the full width at half maximum can be specified with `--fwhm` (in electron Volt).
+
+If you want to plot specific states, which can not be accessed otherwise (because they are dark for excample), you can use the `--states` option. It will select only the states specified for cube generation and in the table summary but not touch the other filtering options, which are now only applied for plotting of the spectrum.
 
 ### Calculating Cubes
 *Relevant arguments:*

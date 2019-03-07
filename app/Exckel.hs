@@ -36,6 +36,7 @@ import           Text.Pandoc                    hiding (FileInfo, def,
                                                  getDataFileName)
 import qualified Text.Pandoc                    as PD (def)
 import           Text.Printf
+import           Text.Read
 
 logMessage f s = printf "  %-70s : %-30s\n" f s
 logHeader h = do
@@ -89,9 +90,13 @@ checkInitial :: (FilePath, FilePath) -> ExckelArgs -> IO ()
 checkInitial (imC, gnp) a = do
   logHeader "----"
   logHeader "Initial file checks:"
-  case (wf a, exc a) of
+  -- have potentially selected states provided by command line argument, chosen manually
+  let selectedStates = case (states a) of
+        Nothing -> Nothing
+        Just s  -> (readMaybe :: String -> Maybe [Int]) s
+  case (wf a, exc a, selectedStates) of
     -- both wavefunction file and logfile are defined
-    (Just w, Just l) -> do
+    (Just w, Just l, Just s) -> do
       excAP <- makeAbsolute l
       wfAP <- makeAbsolute w
       outPrefAP <- makeAbsolute (outdir a)
@@ -102,6 +107,7 @@ checkInitial (imC, gnp) a = do
             & imConvertExePath .~ imC
             & spectrumPlotter . spExePath .~ gnp
             & spectrumPlotter . spBroadening .~ fromMaybe 0.3 (fwhm a)
+            & selStates .~ selectedStates
       logMessage "QC log file with excited states" (fileInfo ^. logFile)
       logMessage "Wavefunction file" (fileInfo ^. waveFunctionFile)
       logMessage "Work directoring" (fileInfo ^. outputPrefix)
@@ -155,17 +161,23 @@ getExcitedStates a fi = do
           eSfilterByFOsc = case (foscFilter a) of
             Nothing       -> eSfilterByEnergy
             Just strength -> filter (\x -> (x ^. oscillatorStrength) >= strength) eSfilterByEnergy
+          eSfinalFilter = case (fi ^. selStates) of
+            Nothing -> eSfilterByFOsc
+            Just s  -> filter (\x -> (x ^. nState) `elem` s) eS
           fileInfoWithPlotRange = fi & spectrumPlotter . spERange .~ (energyfilter a)
+      case (fi ^. selStates) of
+        Nothing -> return ()
+        Just s -> logMessage "Using the following states for everything but spectrum plotting" (show s)
       logMessage "Number of removed states due to <S**2> deviation" (show $ length eS - length eSfilterByS2)
       logMessage "Number of removed states due to energy range" (show $ length eSfilterByS2 - length eSfilterByEnergy)
       logMessage "Number of removed states due to oscillator strength cutoff" (show $ length eSfilterByEnergy - length eSfilterByFOsc)
-      logMessage "States remaining" (show . map (^. nState) $ eSfilterByFOsc)
-      if (length eSfilterByFOsc <= 0)
+      logMessage "States remaining for spectrum plot" (show . map (^. nState) $ eSfilterByFOsc)
+      if (length eSfinalFilter <= 0)
         then errMessage "No states left to plot. Will exit here"
         else do
           logInfo $ "Plotting spectrum as Spectrum.png. See Gnuplot.out and Gnuplot.err"
           SP.GP.plotSpectrum fileInfoWithPlotRange eSfilterByS2 eSfilterByFOsc
-          doCubes a fileInfoWithPlotRange eSfilterByFOsc
+          doCubes a fileInfoWithPlotRange eSfinalFilter
 
 -- | Routine to calculate the cubes. Wraps the CubeGenerators. Jumps to next step if no cubes are to
 -- | be calculated.

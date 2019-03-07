@@ -37,6 +37,7 @@ data ExckelArgs = ExckelArgs
   , fwhm           :: Maybe Double
   , weightfilter   :: Double
   , energyfilter   :: Maybe (Double, Double)
+  , states         :: Maybe String
   } deriving (Show, Data, Typeable)
 
 exckelArgs = ExckelArgs
@@ -115,5 +116,9 @@ exckelArgs = ExckelArgs
   , energyfilter   =  Nothing
                    &= help "Energy range (eV) of the excited states of interest and plot range for spectrum."
                    &= typ "FLOAT,FLOAT"
+
+  , states         =  Nothing
+                   &= help "Plot specific states and ignore all other criteria in the summary. Give as \"[a,b,c]\""
+                   &= typ "[INT]"
   } &= summary "The Exckel automatic summary programm"
     &= help "Available command line arguments. At least \"--wf\" and \"--exc\" must be specified."

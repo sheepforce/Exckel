@@ -68,6 +68,7 @@ module Exckel.Types
 , imConvertExePath
 , pandocInfo
 , spectrumPlotter
+, selStates
 ) where
 import qualified Data.ByteString.Char8 as B
 import           Data.Maybe
@@ -280,6 +281,7 @@ data FileInfo = FileInfo
   , _imConvertExePath :: FilePath
   , _pandocInfo       :: PandocInfo
   , _spectrumPlotter  :: SpectrumPlotter
+  , _selStates        :: Maybe [Int]
   }
   deriving (Eq, Show)
 makeLenses ''FileInfo
@@ -296,4 +298,5 @@ instance (Default FileInfo) where
     , _imConvertExePath = fromMaybe "convert" $ unsafePerformIO $ findExecutable "convert"
     , _pandocInfo = def
     , _spectrumPlotter = def
+    , _selStates = Nothing
     }
