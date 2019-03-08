@@ -235,7 +235,7 @@ cube = do
     , _volumeVectorA = volumeVectorAInBohr
     , _volumeVectorB = volumeVectorBInBohr
     , _volumeVectorC = volumeVectorCInBohr
-    , _comment = T.unpack . T.unlines $ [commentLine1, commentLine2]
+    , _comment = (T.unpack commentLine1) ++ "\n" ++ (T.unpack commentLine2)
     , _atoms = atomsInBohr
     }
 

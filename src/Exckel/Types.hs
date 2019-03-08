@@ -72,6 +72,7 @@ module Exckel.Types
 , Cube(..)
 , comment
 , volumeOrigin
+, voxelDimension
 , volumeVectorA
 , volumeVectorB
 , volumeVectorC
@@ -327,6 +328,7 @@ makeLenses ''Atom
 data Cube = Cube
   { _comment        :: String
   , _volumeOrigin   :: (Double, Double, Double)
+  , _voxelDimension :: (Int, Int, Int)
   , _volumeVectorA  :: (Double, Double, Double)
   , _volumeVectorB  :: (Double, Double, Double)
   , _volumeVectorC  :: (Double, Double, Double)
