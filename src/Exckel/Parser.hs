@@ -231,6 +231,7 @@ cube = do
   return Cube
     { _volumetricData = R.fromListUnboxed (R.Z R.:. nVoxelsX R.:. nVoxelsY R.:. nVoxelsZ) voxelValues
     , _volumeOrigin = volumeOriginInBohr
+    , _voxelDimension = (abs nVoxelsX, abs nVoxelsY, abs nVoxelsZ)
     , _volumeVectorA = volumeVectorAInBohr
     , _volumeVectorB = volumeVectorBInBohr
     , _volumeVectorC = volumeVectorCInBohr
