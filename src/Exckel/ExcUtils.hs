@@ -13,6 +13,8 @@ module Exckel.ExcUtils
 , spinContaminationFractionOfHigherState
 , filterByS2
 , idealS2fromMult
+, angstrom2Bohr
+, bohr2Angstrom
 ) where
 import           Data.List           (nub)
 import           Data.Maybe
@@ -117,3 +119,11 @@ idealS2fromMult :: Int -> Double
 idealS2fromMult mult = s * (s + 1)
   where
     s = (fromIntegral mult - 1) / 2
+
+-- | Convert from Angstrom to Bohr
+angstrom2Bohr :: Floating a => a -> a
+angstrom2Bohr x = 1.88972613 * x
+
+-- | Convert from Bohr to Angstrom
+bohr2Angstrom :: Floating a => a -> a
+bohr2Angstrom x = 0.52917721 * x
