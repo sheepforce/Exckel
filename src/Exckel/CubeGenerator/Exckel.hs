@@ -1,5 +1,6 @@
 module Exckel.CubeGenerator.Exckel
 ( writeCube
+, calculateCDD
 ) where
 import           Data.Array.Repa           ((:.), Array, DIM3, U)
 import qualified Data.Array.Repa           as R
@@ -78,13 +79,14 @@ writeCube c = T.unlines
     -- write a complete chunk of volumetric data belongig to the same x and y coordinates layer
     zChunkWriter zC = T.unlines . map lineChunkWriter $ chunksOf 6 zC
 
--- | Calculate a CDD from available orbital cubes. Returns hole, electron and CDD
-calculateCDD :: FileInfo -> ExcState -> IO (Either String (Cube, Cube, Cube))
+-- | Calculate a CDD from available orbital cubes. Returns the number of the excited state and a
+-- | tuple with hole, electron and CDD
+calculateCDD :: FileInfo -> ExcState -> IO (Either String (Int, (Cube, Cube, Cube)))
 calculateCDD fi eS
   | False `elem` (map (\rO -> rO `elem` availableOrbs) $ requiredOrbs) = return $
       Left $ "Orbital cubes are missing. These are available: \n    " ++
              show availableOrbs ++
-             "But you would need: \n    " ++
+             "\nBut you would need: \n    " ++
              show requiredOrbs
   | otherwise = do
       -- Read all cubes necessary from disk. They will be tupled with the orbital representation
@@ -174,7 +176,7 @@ calculateCDD fi eS
         then return $ Left "Some of your cube files could not be parsed."
         -- Ff all of them parsed, check if they are all compatible
         else if all (== head cubeCharacteristics) cubeCharacteristics
-          then return $ Right (holeCube, electronCube, cddCube)
+          then return $ Right (eS ^. nState, (holeCube, electronCube, cddCube))
           else return $ Left "Your cubes are not compatible with each other. They need same grid specification but don't have."
   where
     -- Do the data come from an open shell calculation?
