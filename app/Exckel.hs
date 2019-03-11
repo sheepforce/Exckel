@@ -17,6 +17,7 @@ import qualified Data.Text                      as T
 import qualified Data.Text.IO                   as T
 import qualified Data.Vector                    as V
 import           Exckel.CmdArgs
+import           Exckel.CubeGenerator.Exckel    as CG.Exckel
 import           Exckel.CubeGenerator.MultiWFN  as CG.MWFN
 import           Exckel.CubePlotter.VMD         as CP.VMD
 import           Exckel.DocumentCreator
@@ -217,8 +218,34 @@ doCubes a fi eS = do
               logMessage "Orbitals to plot" (show . nub . concat . map getOrbNumbers $ eS)
               logInfo "Calculating orbital cubes. See \"MultiWFN.out\" and \"MultiWFN.err\""
               CG.MWFN.calculateOrbs fileInfo (nub . concat . map getOrbNumbers $ weightFilteredExcStates)
+              {-
+              -- Use Exckel's own functions to calculate CDDs
+              logInfo "Calculating CDDs in internally in parallel with REPA."
+              outDirContents <- listDirectory (fileInfo ^. outputPrefix)
+              let allCubes = filter (\x -> (takeExtension x) == ".cube") $ outDirContents
+              absoluteCubes <- mapM makeAbsolute $ map ((fileInfo ^. outputPrefix ++ "/") ++) allCubes
+              let orbCubesFiles = filter (\x -> (take 3 . takeBaseName $ x) == "orb") absoluteCubes
+                  fileInfoWithOrbs = fileInfo & cubeFiles . orbCubes .~ Just orbCubesFiles
+              cddTriples <- mapM (CG.Exckel.calculateCDD fileInfoWithOrbs) eS
+              mapM_ (\i ->
+                case i of
+                  Left e -> errMessage e
+                  Right (i, (h, e, d)) -> do
+                    T.writeFile
+                      ((fileInfoWithOrbs ^. outputPrefix) ++ [pathSeparator] ++ "hole" ++ show i ++ ".cube")
+                      (writeCube h)
+                    T.writeFile
+                      ((fileInfoWithOrbs ^. outputPrefix) ++ [pathSeparator] ++ "electron" ++ show i ++ ".cube")
+                      (writeCube e)
+                    T.writeFile
+                      ((fileInfoWithOrbs ^. outputPrefix) ++ [pathSeparator] ++ "CDD" ++ show i ++ ".cube")
+                      (writeCube d)
+                ) cddTriples
+              -}
+
               logInfo "Calculating CDDs. See \"MultiWFN.out\" and \"MultiWFN.err\""
               CG.MWFN.calculateCDDs fileInfo (map (^. nState) eS)
+              
   doPlots a fi weightFilteredExcStates
 
 -- | Call plotter to visualise all cubes found.
