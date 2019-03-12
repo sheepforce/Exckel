@@ -266,8 +266,9 @@ doCDDCubes a fi eS = do
           logMessage "CDD calculator" "REgular Parallel Arrays"
           logInfo "Calculating CDDs in parallel using REgular Parallel Arrays (internal, parallel). See \"REPA.log\""
           cddTriples <- mapM (CG.Exckel.calculateCDD fileInfoWithOrbs) eS
-          mapM_ (\i ->
-            case i of
+          mapM_ (\s -> do
+            cddTriple <- CG.Exckel.calculateCDD fileInfoWithOrbs s
+            case cddTriple of
               Left e -> errMessage e
               Right (i, (h, e, d)) -> do
                 T.writeFile
@@ -279,7 +280,7 @@ doCDDCubes a fi eS = do
                 T.writeFile
                   ((fileInfoWithOrbs ^. outputPrefix) ++ [pathSeparator] ++ "CDD" ++ show i ++ ".cube")
                   (writeCube d)
-            ) cddTriples
+            ) eS
         MultiWFNCDD{} -> do
           case (multiwfn a) of
             -- MultiWFN executable has not been found
