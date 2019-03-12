@@ -97,7 +97,7 @@ checkInitial (imC, gnp) a = do
         Just s  -> (readMaybe :: String -> Maybe [Int]) s
   case (wf a, exc a, selectedStates) of
     -- both wavefunction file and logfile are defined
-    (Just w, Just l, Just s) -> do
+    (Just w, Just l, s) -> do
       excAP <- makeAbsolute l
       wfAP <- makeAbsolute w
       outPrefAP <- makeAbsolute (outdir a)
@@ -122,7 +122,7 @@ checkInitial (imC, gnp) a = do
       logMessage "Calculation software was" (show (fileInfo ^. calcSoftware))
       getExcitedStates a fileInfo
     -- one or both of wavefunction and/or logfile are undefined
-    _ -> errMessage $ "Wavefuntion and or log file not found. Cannot continue."
+    _ -> errMessage $ "Wavefunction and or log file not found. Cannot continue."
 
 -- | Get the excited states from the log file and pass to next step.
 getExcitedStates :: ExckelArgs -> FileInfo -> IO ()
