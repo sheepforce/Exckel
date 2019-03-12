@@ -5,16 +5,20 @@ Contains all parsers for quantum chemistry software outputs. Contains also parse
 module Exckel.Parser
 ( gaussianLogTDDFT
 , nwchemTDDFT
+, cube
 , vmdState
 , vmdRC
 ) where
 import           Control.Applicative
+import           Data.Array.Repa      (Array, DIM3, U, Z)
+import qualified Data.Array.Repa      as R
 import           Data.Attoparsec.Text
 import qualified Data.Text            as T
 import qualified Data.Vector          as V
+import           Exckel.ExcUtils
 import           Exckel.Types
 import           Lens.Micro.Platform
-import           Prelude              hiding (takeWhile)
+import           Prelude              hiding (take, takeWhile)
 import           Text.Printf
 
 -- | From the whole Gaussian TDDFT output, parse all single excited state and skip over all other
@@ -126,6 +130,7 @@ gaussianLogTDDFT = do
       }
   return states'
 
+-- | Parse NWChem log file from TDDFT output calculation (RPA) for open shell and closed shell.
 nwchemTDDFT :: Parser [ExcState]
 nwchemTDDFT = do
   -- wavefunction type
@@ -244,6 +249,117 @@ nwchemTDDFT = do
       , _nBasisFunctions = nBasisFunctions'
       }
   return states'
+
+-- | Parse a Gaussian cube file. Takes care of Angstrom Bohr conversion.
+cube :: Parser Cube
+cube = do
+  -- read exactly 2 lines comments
+  commentLine1 <- takeWhile (not . isEndOfLine)
+  endOfLine
+  commentLine2 <- takeWhile (not . isEndOfLine)
+  endOfLine
+  -- read number of atoms from line 3
+  _ <- takeWhile isHorizontalSpace
+  nAtoms <- decimal
+  -- parse origin of the cell vectors
+  _ <- takeWhile isHorizontalSpace
+  originX <- double
+  _ <- takeWhile isHorizontalSpace
+  originY <- double
+  _ <- takeWhile isHorizontalSpace
+  originZ <- double
+  _ <- takeWhile isHorizontalSpace
+  endOfLine
+  -- Informations about volumetric data. Number of Voxels and cell vectors are given
+  voxelCellInfo <- count 3 $ do
+   -- parse the voxels in direction
+   _ <- takeWhile isHorizontalSpace
+   nVoxels <- decimal
+   -- parse the vector of the cell
+   _ <- takeWhile isHorizontalSpace
+   vectorX <- double
+   _ <- takeWhile isHorizontalSpace
+   vectorY <- double
+   _ <- takeWhile isHorizontalSpace
+   vectorZ <- double
+   _ <- takeWhile isHorizontalSpace
+   endOfLine
+   return (nVoxels, (vectorX, vectorY, vectorZ))
+  -- parse all atoms
+  atoms' <- count nAtoms $ do
+   -- read the atomic number
+   _ <- takeWhile isHorizontalSpace
+   aNumber <- decimal
+   -- read charge ...?
+   _ <- takeWhile isHorizontalSpace
+   _ <- double
+   -- read the atomic coordinates
+   _ <- takeWhile isHorizontalSpace
+   aX <- double
+   _ <- takeWhile isHorizontalSpace
+   aY <- double
+   _ <- takeWhile isHorizontalSpace
+   aZ <- double
+   _ <- takeWhile isHorizontalSpace
+   endOfLine
+   -- return the parsed atom
+   return Atom
+     { _atomicNumber = aNumber
+     , _coordinate = (aX, aY, aZ)
+     }
+  -- process parsed data
+  let nVoxelsX = (voxelCellInfo !! 0) ^. _1
+      nVoxelsY = (voxelCellInfo !! 1) ^. _1
+      nVoxelsZ = (voxelCellInfo !! 2) ^. _1
+      nVoxels = nVoxelsX * nVoxelsY * nVoxelsZ
+      isInBohrX = if nVoxelsX < 0
+        then False
+        else True
+      isInBohrY = if nVoxelsY < 0
+        then False
+        else True
+      isInBohrZ = if nVoxelsZ < 0
+        then False
+        else True
+      atomsInBohr = map (\a -> a
+        & coordinate . _1 %~ (if isInBohrX then (* 1.0) else angstrom2Bohr)
+        & coordinate . _2 %~ (if isInBohrY then (* 1.0) else angstrom2Bohr)
+        & coordinate . _3 %~ (if isInBohrZ then (* 1.0) else angstrom2Bohr)
+        ) atoms'
+      volumeOriginInBohr =
+        ( if isInBohrX then originX else angstrom2Bohr originX
+        , if isInBohrY then originY else angstrom2Bohr originY
+        , if isInBohrZ then originZ else angstrom2Bohr originZ
+        )
+      volumeVectorAInBohr = (voxelCellInfo !! 0 ^. _2)
+        & _1 %~ (if isInBohrX then (* 1.0) else angstrom2Bohr)
+        & _2 %~ (if isInBohrX then (* 1.0) else angstrom2Bohr)
+        & _3 %~ (if isInBohrX then (* 1.0) else angstrom2Bohr)
+      volumeVectorBInBohr = (voxelCellInfo !! 1 ^. _2)
+        & _1 %~ (if isInBohrY then (* 1.0) else angstrom2Bohr)
+        & _2 %~ (if isInBohrY then (* 1.0) else angstrom2Bohr)
+        & _3 %~ (if isInBohrY then (* 1.0) else angstrom2Bohr)
+      volumeVectorCInBohr = (voxelCellInfo !! 2 ^. _2)
+        & _1 %~ (if isInBohrZ then (* 1.0) else angstrom2Bohr)
+        & _2 %~ (if isInBohrZ then (* 1.0) else angstrom2Bohr)
+        & _3 %~ (if isInBohrZ then (* 1.0) else angstrom2Bohr)
+  -- Parse the volumetric data
+  _ <- takeWhile isHorizontalSpace
+  voxelValues <- count nVoxels $ do
+    voxel <- double
+    skipSpace
+    return voxel
+  -- return the cube
+  return Cube
+    { _volumetricData = R.fromListUnboxed (R.Z R.:. nVoxelsX R.:. nVoxelsY R.:. nVoxelsZ) voxelValues
+    , _volumeOrigin = volumeOriginInBohr
+    , _voxelDimension = (abs nVoxelsX, abs nVoxelsY, abs nVoxelsZ)
+    , _volumeVectorA = volumeVectorAInBohr
+    , _volumeVectorB = volumeVectorBInBohr
+    , _volumeVectorC = volumeVectorCInBohr
+    , _comment = (T.unpack commentLine1) ++ "\n" ++ (T.unpack commentLine2)
+    , _atoms = atomsInBohr
+    }
 
 -- | take a VMD state file and parse the part of it, which gives orientation of the molecule
 -- | relative to the camera (perspective)
