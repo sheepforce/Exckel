@@ -197,9 +197,9 @@ doOrbCubes a fi eS = do
     then return ()
     -- cubes shall be calculated
     else do
-      case fi ^. cubeGenerator of
+      case fi ^. orbGenerator of
         -- program to calculate cubes from wavefunction is MultiWFN
-        MultiWFN{} -> do
+        MultiWFNOrb{} -> do
           case (multiwfn a) of
             -- MultiWFN executable has not been found
             Nothing -> errMessage "MultiWFN executable not found. Please specify one. Will skip cube calculation."
@@ -211,16 +211,19 @@ doOrbCubes a fi eS = do
                     map (V.filter (\d -> d ^. weight >= weightfilter a)) $
                     map (^. ciWavefunction) eS
                   weightFilteredExcStates = zipWith (\e d -> e & ciWavefunction .~ d) eS weightFilteredCIDeterminants
-              let excitedStates = case (cddcalculator a) of
-                    "repa" -> eS
-                    "multiwfn" -> weightFilteredExcStates
-                    _ -> eS
-              case (cddcalculator a) of
-                "multiwfn" -> logMessage "Filtering CI determinants by minimum weights" (show $ weightfilter a)
+                  cddProgram = case (cddcalculator a) of
+                    "repa" -> REPA
+                    "multiwfn" -> MultiWFNCDD {_cddExePath = (def :: OrbGenerator) ^. ogExePath}
+                    _ -> REPA
+                  fileInfoWithCDD = fi & cddGenerator .~ cddProgram
+              let excitedStates = case (fileInfoWithCDD ^. cddGenerator) of
+                    REPA{} -> eS
+                    MultiWFNCDD{} -> weightFilteredExcStates
+              case (fileInfoWithCDD ^. cddGenerator) of
+                MultiWFNCDD{} -> logMessage "Filtering CI determinants by minimum weights" (show $ weightfilter a)
                 _ -> return ()
-              let fileInfo = fi
-                    & cubeGenerator . cgExePath .~ exe
-              logMessage "CubeCalculator" (fileInfo ^. cubeGenerator . cgExePath)
+              let fileInfo = fi & orbGenerator . ogExePath .~ exe
+              logMessage "CubeCalculator" (fileInfo ^. orbGenerator . ogExePath)
               logMessage "Orbitals to plot" (show . nub . concat . map getOrbNumbers $ excitedStates)
               logInfo "Calculating orbital cubes. See \"MultiWFN.out\" and \"MultiWFN.err\""
               CG.MWFN.calculateOrbs fileInfo (nub . concat . map getOrbNumbers $ excitedStates)
@@ -234,20 +237,25 @@ doCDDCubes a fi eS = do
   logMessage
     "Calculate CDD cubes"
     ( if (nocalccdds a)
-        then "No"
-        else "Yes"
+        then "no"
+        else "yes"
     )
   outDirContents <- listDirectory (fi ^. outputPrefix)
   let allCubes = filter (\x -> (takeExtension x) == ".cube") $ outDirContents
   absoluteCubes <- mapM makeAbsolute $ map ((fi ^. outputPrefix ++ "/") ++) allCubes
   let orbCubesFiles = filter (\x -> (take 3 . takeBaseName $ x) == "orb") absoluteCubes
       fileInfoWithOrbs = fi & cubeFiles . orbCubes .~ Just orbCubesFiles
-  logMessage "Orbital cubes" (show $ map takeFileName <$> (fileInfoWithOrbs ^. cubeFiles . orbCubes))
   if (nocalccdds a)
     then return ()
     else do
-      case (cddcalculator a) of
-        "repa" -> do
+      let cddProgram = case (cddcalculator a) of
+            "repa" -> REPA
+            "multiwfn" -> MultiWFNCDD {_cddExePath = (def :: OrbGenerator) ^. ogExePath}
+            _ -> REPA
+          fileInfoWithCDD = fileInfoWithOrbs & cddGenerator .~ cddProgram
+      case (fileInfoWithCDD ^. cddGenerator) of
+        REPA{} -> do
+          logMessage "Orbital cubes" (show $ map takeFileName <$> (fileInfoWithCDD ^. cubeFiles . orbCubes))
           logMessage "CDD calculator" "REgular Parallel Arrays"
           logInfo "Calculating CDDs in parallel using REgular Parallel Arrays (internal, parallel)"
           cddTriples <- mapM (CG.Exckel.calculateCDD fileInfoWithOrbs) eS
@@ -265,35 +273,16 @@ doCDDCubes a fi eS = do
                   ((fileInfoWithOrbs ^. outputPrefix) ++ [pathSeparator] ++ "CDD" ++ show i ++ ".cube")
                   (writeCube d)
             ) cddTriples
-        "multiwfn" -> do
-          case fi ^. cubeGenerator of
-            -- program to calculate cubes from wavefunction is MultiWFN
-            MultiWFN{} -> do
-              case (multiwfn a) of
-                -- MultiWFN executable has not been found
-                Nothing -> errMessage "MultiWFN executable not found. Please specify one. Will skip cube calculation."
-                -- MultiWFN executable has been found
-                Just exe -> do
-                  logMessage "CDD calculator" (show exe)
-                  logInfo "Calculating CDDs. See \"MultiWFN.out\" and \"MultiWFN.err\""
-                  CG.MWFN.calculateCDDs fileInfoWithOrbs (map (^. nState) eS)
-        _ -> do
-          logInfo "Invalid specification of CDD calculator. Defaulting to internal REPA."
-          cddTriples <- mapM (CG.Exckel.calculateCDD fileInfoWithOrbs) eS
-          mapM_ (\i ->
-            case i of
-              Left e -> errMessage e
-              Right (i, (h, e, d)) -> do
-                T.writeFile
-                  ((fileInfoWithOrbs ^. outputPrefix) ++ [pathSeparator] ++ "hole" ++ show i ++ ".cube")
-                  (writeCube h)
-                T.writeFile
-                  ((fileInfoWithOrbs ^. outputPrefix) ++ [pathSeparator] ++ "electron" ++ show i ++ ".cube")
-                  (writeCube e)
-                T.writeFile
-                  ((fileInfoWithOrbs ^. outputPrefix) ++ [pathSeparator] ++ "CDD" ++ show i ++ ".cube")
-                  (writeCube d)
-            ) cddTriples
+        MultiWFNCDD{} -> do
+          case (multiwfn a) of
+            -- MultiWFN executable has not been found
+            Nothing -> errMessage "MultiWFN executable not found. Please specify one. Will skip cube calculation."
+            -- MultiWFN executable has been found
+            Just exe -> do
+              logMessage "CDD calculator" (show exe)
+              logInfo "Calculating CDDs. See \"MultiWFN.out\" and \"MultiWFN.err\""
+              let fileInfoWithMultiWFN = fileInfoWithCDD & cddGenerator . cddExePath .~ exe
+              CG.MWFN.calculateCDDs fileInfoWithMultiWFN (map (^. nState) eS)
   doPlots a fileInfoWithOrbs eS
 
 -- | Call plotter to visualise all cubes found.

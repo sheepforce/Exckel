@@ -80,7 +80,7 @@ exckelArgs = ExckelArgs
                    &= typFile
 
   , cddcalculator  =  "repa"
-                   &= help "Program to use to calculate charge density differnces. multiwfn | repa"
+                   &= help "Program to use to calculate charge density differnces. [multiwfn | repa]"
                    &= typ "STRING"
 
   , tachyon        =  (unsafePerformIO $ findExecutable "tachyon")
@@ -88,7 +88,7 @@ exckelArgs = ExckelArgs
                    &= typFile
 
   , pdFormat       =  "docx"
-                   &= help "Format of the summary to write with Pandoc. Any of [docx, odt, latex]"
+                   &= help "Format of the summary to write with Pandoc. Any of [docx | odt | latex]"
                    &= typ "STRING"
 
   , panref         =  Nothing

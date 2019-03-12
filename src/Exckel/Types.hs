@@ -24,8 +24,10 @@ module Exckel.Types
 , oscillatorStrength
 , ciWavefunction
 , nBasisFunctions
-, CubeGenerator(..)
-, cgExePath
+, OrbGenerator(..)
+, ogExePath
+, CDDGenerator(..)
+, cddExePath
 , ImageFormat(..)
 , Renderer(..)
 , rExePath
@@ -60,7 +62,8 @@ module Exckel.Types
 , logFile
 , calcSoftware
 , waveFunctionFile
-, cubeGenerator
+, orbGenerator
+, cddGenerator
 , cubePlotter
 , outputPrefix
 , cubeFiles
@@ -143,10 +146,10 @@ makeLenses ''ExcState
 ----------------------------------------------------------------------------------------------------
 -- File system data type for interaction with external world
 ----------------------------------------------------------------------------------------------------
--- | Programm to calculate cubes from fchk or molden files
-data CubeGenerator =
-    MultiWFN
-      { _cgExePath          :: FilePath
+-- | Programm to calculate orbital cubes from fchk or molden files
+data OrbGenerator =
+    MultiWFNOrb
+      { _ogExePath          :: FilePath
       }
 {-
   | CubeGen
@@ -158,11 +161,22 @@ data CubeGenerator =
       }
 -}
   deriving (Eq, Show)
-makeLenses ''CubeGenerator
-instance (Default CubeGenerator) where
-  def = MultiWFN
-    { _cgExePath = fromMaybe "Multiwfn" $ unsafePerformIO $ findExecutable "Multiwfn"
+makeLenses ''OrbGenerator
+instance (Default OrbGenerator) where
+  def = MultiWFNOrb
+    { _ogExePath = fromMaybe "Multiwfn" $ unsafePerformIO $ findExecutable "Multiwfn"
     }
+
+-- | Programm to calculate CDD cube files from orbitals
+data CDDGenerator =
+    MultiWFNCDD
+      { _cddExePath :: FilePath
+      }
+  | REPA
+  deriving (Eq, Show)
+makeLenses ''CDDGenerator
+instance (Default CDDGenerator) where
+  def = REPA
 
 -- | Image formats, that might be used throughout the program, especially during rendering
 data ImageFormat = JPG | PNG deriving (Eq, Show)
@@ -287,7 +301,8 @@ data FileInfo = FileInfo
   { _logFile          :: FilePath
   , _calcSoftware     :: CalcSoftware
   , _waveFunctionFile :: FilePath
-  , _cubeGenerator    :: CubeGenerator
+  , _orbGenerator     :: OrbGenerator
+  , _cddGenerator     :: CDDGenerator
   , _cubePlotter      :: CubePlotter
   , _outputPrefix     :: FilePath
   , _cubeFiles        :: CubeFiles
@@ -304,7 +319,8 @@ instance (Default FileInfo) where
     { _logFile = ""
     , _calcSoftware = Gaussian
     , _waveFunctionFile = ""
-    , _cubeGenerator = def
+    , _orbGenerator = def
+    , _cddGenerator = def
     , _cubePlotter = def
     , _outputPrefix = "."
     , _cubeFiles = def

@@ -71,7 +71,7 @@ calculateOrbs fi orbInds = do
 
   zipWithM_ renameFile oldCubeNames newCubeNames
   where
-    mwfnPath = fi ^. cubeGenerator . cgExePath
+    mwfnPath = fi ^. orbGenerator . ogExePath
     mwfnWFN = fi ^. waveFunctionFile
     mwfnOutDir = fi ^. outputPrefix
     printOrbList :: [Int] -> String
@@ -136,7 +136,7 @@ calculateCDDs fi esN = do
     renameFile oldHoleName (newHoleName n)
         ) esN
   where
-    mwfnPath = fi ^. cubeGenerator . cgExePath
+    mwfnPath = fi ^. cddGenerator . cddExePath
     mwfnWFN = fi ^. waveFunctionFile
     mwfnLog = fi ^. logFile
     mwfnOutDir = fi ^. outputPrefix
