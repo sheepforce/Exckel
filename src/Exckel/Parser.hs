@@ -1,8 +1,10 @@
 {-
 Contains all parsers for quantum chemistry software outputs. Contains also parsers for
 -}
+{-# LANGUAGE OverloadedStrings #-}
 module Exckel.Parser
 ( gaussianLogTDDFT
+, nwchemTDDFT
 , vmdState
 , vmdRC
 ) where
@@ -124,6 +126,124 @@ gaussianLogTDDFT = do
       }
   return states'
 
+nwchemTDDFT :: Parser [ExcState]
+nwchemTDDFT = do
+  -- wavefunction type
+  _ <- manyTill anyChar (string "Wavefunction type:")
+  _ <- takeWhile isHorizontalSpace
+  wfString <- string "spin polarized." <|> string "closed shell."
+  let wfType' = case wfString of
+        "spin polarized." -> Just OpenShell
+        "closed shell." -> Just ClosedShell
+        _ -> Nothing
+  -- multiplicity
+  _ <- manyTill anyChar (string "Spin multiplicity:")
+  _ <- takeWhile isHorizontalSpace
+  multiplicity' <- decimal
+  -- number of orbitals / basis functions. I am not absolutely sure, that this works if linear
+  -- dependences are removed
+  _ <- manyTill anyChar (string "AO basis - number of functions:")
+  _ <- takeWhile isHorizontalSpace
+  nBasisFunctions' <- decimal
+  -- parse all excited state blocks
+  states' <- many1 $ do
+    -- begin of an excitation block
+    _ <- manyTill anyChar (string "Root")
+    -- number of the excited state
+    _ <- takeWhile isHorizontalSpace
+    nState' <- decimal
+    -- potentially the multiplicity in closed shell calculation
+    _ <- takeWhile isHorizontalSpace
+    _ <- option Nothing (Just <$> (string "singlet" <|> string "triplet"))
+    -- symmetry label
+    _ <- takeWhile isHorizontalSpace
+    _ <- many1 (letter <|> digit)
+    -- energy in hartree
+    _ <- takeWhile isHorizontalSpace
+    relEnergy' <- double
+    _ <- takeWhile isHorizontalSpace
+    _ <- string "a.u."
+    -- energy in eV
+    _ <- manyTill anyChar endOfLine
+    -- S**2 value
+    s2' <- option Nothing (Just <$> do
+        _ <- takeWhile isHorizontalSpace
+        _ <- string "<S2> ="
+        _ <- takeWhile isHorizontalSpace
+        ssquare <- double
+        return ssquare
+        )
+    -- oscillator strength
+    oscillatorStrength' <-
+      -- open shell calculation
+      (do
+        _ <- manyTill anyChar (string "Total Oscillator Strength")
+        _ <- takeWhile isHorizontalSpace
+        fOsc <- double
+        return fOsc
+      )
+      <|>
+      -- closed shell calculation
+      (do
+        _ <- manyTill anyChar (string "Dipole Oscillator Strength")
+        _ <- takeWhile isHorizontalSpace
+        fOsc <- double
+        return fOsc
+      )
+    -- CI determinant block
+    skipSpace
+    ciWavefunction' <- many1 $ do
+      -- from orbital
+      _ <- takeWhile isHorizontalSpace
+      fromVirtOcc <- string "Occ." <|> string "Virt."
+      _ <- takeWhile isHorizontalSpace
+      fromOrbI' <- decimal
+      _ <- takeWhile isHorizontalSpace
+      fromOrbS' <- option Nothing (Just <$> (string "alpha" <|> string "beta"))
+      _ <- takeWhile isHorizontalSpace
+      _ <- many1 (letter <|> digit)
+      -- separation of blocks
+      _ <- takeWhile isHorizontalSpace
+      _ <- string "---"
+      -- to block
+      _ <- takeWhile isHorizontalSpace
+      toVirtOcc <- string "Occ." <|> string "Virt."
+      _ <- takeWhile isHorizontalSpace
+      toOrbI' <- decimal
+      _ <- takeWhile isHorizontalSpace
+      toOrbS' <- option Nothing (Just <$> (string "alpha" <|> string "beta"))
+      _ <- takeWhile isHorizontalSpace
+      _ <- many1 (letter <|> digit)
+      -- coefficient
+      _ <- takeWhile isHorizontalSpace
+      coeff' <- double
+      _ <- takeWhile (not <$> isEndOfLine)
+      endOfLine
+      let (spinFrom', spinTo') = case (fromOrbS', toOrbS') of
+            (Nothing, Nothing)   -> (Nothing, Nothing)
+            (Just "alpha", Just "alpha") -> (Just Alpha, Just Alpha)
+            (Just "beta", Just "beta")   -> (Just Beta, Just Beta)
+            _                            -> (Nothing, Nothing)
+      return CIDeterminant
+        { _excitationPairs =
+            [ OrbitalExcitation
+                { _fromOrb = (fromOrbI', spinFrom')
+                , _toOrb = (toOrbI', spinTo')
+                }
+            ]
+        , _weight = (coeff')**2.0
+        }
+    return ExcState
+      { _nState = nState'
+      , _multiplicity = multiplicity'
+      , _wfType = wfType'
+      , _s2 = s2'
+      , _relEnergy = relEnergy'
+      , _oscillatorStrength = oscillatorStrength'
+      , _ciWavefunction = V.fromList ciWavefunction'
+      , _nBasisFunctions = nBasisFunctions'
+      }
+  return states'
 
 -- | take a VMD state file and parse the part of it, which gives orientation of the molecule
 -- | relative to the camera (perspective)
