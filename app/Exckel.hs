@@ -101,7 +101,11 @@ checkInitial (imC, gnp) a = do
       excAP <- makeAbsolute l
       wfAP <- makeAbsolute w
       outPrefAP <- makeAbsolute (outdir a)
-      let fileInfo = def
+      let calcSoft = case (calcsoftware a) of
+            "gaussian" -> Gaussian
+            "nwchem" -> NWChem
+            _ -> Gaussian
+          fileInfo = def
             & logFile .~ excAP
             & waveFunctionFile .~ wfAP
             & outputPrefix .~ outPrefAP
@@ -109,6 +113,7 @@ checkInitial (imC, gnp) a = do
             & spectrumPlotter . spExePath .~ gnp
             & spectrumPlotter . spBroadening .~ fromMaybe 0.3 (fwhm a)
             & selStates .~ selectedStates
+            & calcSoftware .~ calcSoft
       logMessage "QC log file with excited states" (fileInfo ^. logFile)
       logMessage "Wavefunction file" (fileInfo ^. waveFunctionFile)
       logMessage "Work directoring" (fileInfo ^. outputPrefix)
@@ -136,17 +141,19 @@ getExcitedStates a fi = do
        Nothing   -> "/"
        Just minF -> show minF
     )
+  logMessage "Calculation software was" (show $ fi ^. calcSoftware)
   logInfo "Parsing log file ..."
   logRaw <- T.readFile (fi ^. logFile)
   let logParsed = case (fi ^. calcSoftware) of
         -- if guassian, use the gaussian parser
         Gaussian -> parseOnly gaussianLogTDDFT logRaw
+        NWChem -> parseOnly nwchemTDDFT logRaw
   case logParsed of
     -- if parsing went wrong show the error
     Left err -> do
-      setSGR [SetColor Foreground Vivid Red]
+      -- setSGR [SetColor Foreground Vivid Red]
       errMessage $ "  Could not parse the log file with: " ++ show err
-      setSGR [Reset]
+      -- setSGR [Reset]
     -- if parsing suceeded, pass data to next step
     Right eS -> do
       logMessage "Reference wavefunction" (show . head . map (^. wfType) $ eS)

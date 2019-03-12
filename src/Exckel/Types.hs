@@ -263,7 +263,7 @@ instance (Default ImageFiles) where
     }
 
 -- | Quantum chemistry program from which the logfile comes
-data CalcSoftware = Gaussian deriving (Eq, Show)
+data CalcSoftware = Gaussian | NWChem deriving (Eq, Show)
 
 -- | Supported output formats for the excitation summary
 data PDDocType = DOCX | ODT | LATEX deriving (Eq, Show)
