@@ -91,9 +91,11 @@ calculateCDD fi eS
   | otherwise = do
       -- Read all cubes necessary from disk. They will be tupled with the orbital representation
       -- used in the CI determinant pairs.
+      writeREPALog fi $ "Processing excited state: " ++ (show $ eS ^. nState)
       labeledOrbCubesEither <- mapM (\i -> do
                                       cubeIRaw <- T.readFile $ (fi ^. outputPrefix) ++ [pathSeparator] ++ "orb" ++ show i ++ ".cube"
                                       let cubeI = parseOnly cube cubeIRaw
+                                      writeREPALog fi $ "Parsing orbital cube " ++ (show i)
                                       return (orbNumber2Orb i nMOs isOpenShell, cubeI)
                                     ) requiredOrbs
       let -- After checking (in the return at the end of the function), if all cubes parsed
@@ -211,3 +213,7 @@ calculateCDD fi eS
     -- but overall, everything is now reduced to formally a singles excitation.
     weightedHoleOrbs = concat . V.toList . V.map reduceToSinglesHole $ ciExcitations
     weightedElectronOrbs = concat .V.toList . V.map reduceToSinglesElectron $ ciExcitations
+
+writeREPALog :: FileInfo -> String -> IO ()
+writeREPALog fi msg = do
+  T.appendFile ((fi ^. outputPrefix) ++ [pathSeparator] ++ "REPA.log") (T.pack msg)
