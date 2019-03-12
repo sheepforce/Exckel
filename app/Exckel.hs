@@ -265,7 +265,6 @@ doCDDCubes a fi eS = do
           logMessage "Orbital cubes" (show $ map takeFileName <$> (fileInfoWithCDD ^. cubeFiles . orbCubes))
           logMessage "CDD calculator" "REgular Parallel Arrays"
           logInfo "Calculating CDDs in parallel using REgular Parallel Arrays (internal, parallel). See \"REPA.log\""
-          cddTriples <- mapM (CG.Exckel.calculateCDD fileInfoWithOrbs) eS
           mapM_ (\s -> do
             cddTriple <- CG.Exckel.calculateCDD fileInfoWithOrbs s
             case cddTriple of
