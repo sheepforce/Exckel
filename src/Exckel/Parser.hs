@@ -139,8 +139,8 @@ nwchemTDDFT = do
   wfString <- string "spin polarized." <|> string "closed shell."
   let wfType' = case wfString of
         "spin polarized." -> Just OpenShell
-        "closed shell." -> Just ClosedShell
-        _ -> Nothing
+        "closed shell."   -> Just ClosedShell
+        _                 -> Nothing
   -- multiplicity
   _ <- manyTill anyChar (string "Spin multiplicity:")
   _ <- takeWhile isHorizontalSpace
@@ -225,7 +225,7 @@ nwchemTDDFT = do
       _ <- takeWhile (not <$> isEndOfLine)
       endOfLine
       let (spinFrom', spinTo') = case (fromOrbS', toOrbS') of
-            (Nothing, Nothing)   -> (Nothing, Nothing)
+            (Nothing, Nothing)           -> (Nothing, Nothing)
             (Just "alpha", Just "alpha") -> (Just Alpha, Just Alpha)
             (Just "beta", Just "beta")   -> (Just Beta, Just Beta)
             _                            -> (Nothing, Nothing)
@@ -233,20 +233,20 @@ nwchemTDDFT = do
         { _excitationPairs =
             [ OrbitalExcitation
                 { _fromOrb = (fromOrbI', spinFrom')
-                , _toOrb = (toOrbI', spinTo')
+                , _toOrb   = (toOrbI', spinTo')
                 }
             ]
         , _weight = (coeff')**2.0
         }
     return ExcState
-      { _nState = nState'
-      , _multiplicity = multiplicity'
-      , _wfType = wfType'
-      , _s2 = s2'
-      , _relEnergy = relEnergy'
+      { _nState             = nState'
+      , _multiplicity       = multiplicity'
+      , _wfType             = wfType'
+      , _s2                 = s2'
+      , _relEnergy          = relEnergy'
       , _oscillatorStrength = oscillatorStrength'
-      , _ciWavefunction = V.fromList ciWavefunction'
-      , _nBasisFunctions = nBasisFunctions'
+      , _ciWavefunction     = V.fromList ciWavefunction'
+      , _nBasisFunctions    = nBasisFunctions'
       }
   return states'
 
@@ -352,13 +352,13 @@ cube = do
   -- return the cube
   return Cube
     { _volumetricData = R.fromListUnboxed (R.Z R.:. nVoxelsX R.:. nVoxelsY R.:. nVoxelsZ) voxelValues
-    , _volumeOrigin = volumeOriginInBohr
+    , _volumeOrigin   = volumeOriginInBohr
     , _voxelDimension = (abs nVoxelsX, abs nVoxelsY, abs nVoxelsZ)
-    , _volumeVectorA = volumeVectorAInBohr
-    , _volumeVectorB = volumeVectorBInBohr
-    , _volumeVectorC = volumeVectorCInBohr
-    , _comment = (T.unpack commentLine1) ++ "\n" ++ (T.unpack commentLine2)
-    , _atoms = atomsInBohr
+    , _volumeVectorA  = volumeVectorAInBohr
+    , _volumeVectorB  = volumeVectorBInBohr
+    , _volumeVectorC  = volumeVectorCInBohr
+    , _comment        = (T.unpack commentLine1) ++ "\n" ++ (T.unpack commentLine2)
+    , _atoms          = atomsInBohr
     }
 
 -- | take a VMD state file and parse the part of it, which gives orientation of the molecule

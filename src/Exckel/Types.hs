@@ -85,7 +85,7 @@ module Exckel.Types
 , atomicNumber
 , coordinate
 ) where
-import           Data.Array.Repa       (Array, DIM3, U, (:.))
+import           Data.Array.Repa       ((:.), Array, DIM3, U)
 import qualified Data.Array.Repa       as R
 import qualified Data.ByteString.Char8 as B
 import           Data.Maybe

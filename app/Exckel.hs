@@ -103,8 +103,8 @@ checkInitial (imC, gnp) a = do
       outPrefAP <- makeAbsolute (outdir a)
       let calcSoft = case (calcsoftware a) of
             "gaussian" -> Gaussian
-            "nwchem" -> NWChem
-            _ -> Gaussian
+            "nwchem"   -> NWChem
+            _          -> Gaussian
           fileInfo = def
             & logFile .~ excAP
             & waveFunctionFile .~ wfAP
@@ -147,7 +147,7 @@ getExcitedStates a fi = do
   let logParsed = case (fi ^. calcSoftware) of
         -- if guassian, use the gaussian parser
         Gaussian -> parseOnly gaussianLogTDDFT logRaw
-        NWChem -> parseOnly nwchemTDDFT logRaw
+        NWChem   -> parseOnly nwchemTDDFT logRaw
   case logParsed of
     -- if parsing went wrong show the error
     Left err -> do
@@ -224,7 +224,7 @@ doOrbCubes a fi eS = do
                     _ -> REPA
                   fileInfoWithCDD = fi & cddGenerator .~ cddProgram
               let excitedStates = case (fileInfoWithCDD ^. cddGenerator) of
-                    REPA{} -> eS
+                    REPA{}        -> eS
                     MultiWFNCDD{} -> weightFilteredExcStates
               case (fileInfoWithCDD ^. cddGenerator) of
                 MultiWFNCDD{} -> logMessage "Filtering CI determinants by minimum weights" (show $ weightfilter a)
