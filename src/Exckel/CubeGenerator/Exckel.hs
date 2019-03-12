@@ -91,11 +91,11 @@ calculateCDD fi eS
   | otherwise = do
       -- Read all cubes necessary from disk. They will be tupled with the orbital representation
       -- used in the CI determinant pairs.
-      writeREPALog fi $ "Processing excited state: " ++ (show $ eS ^. nState)
+      T.writeFile logfile $ "Processing excited state: " `T.append` (T.pack . show $ eS ^. nState) `T.append` "\n"
       labeledOrbCubesEither <- mapM (\i -> do
                                       cubeIRaw <- T.readFile $ (fi ^. outputPrefix) ++ [pathSeparator] ++ "orb" ++ show i ++ ".cube"
                                       let cubeI = parseOnly cube cubeIRaw
-                                      writeREPALog fi $ "Parsing orbital cube " ++ (show i)
+                                      T.appendFile logfile $ "Parsing orbital cube " `T.append` (T.pack . show $ i) `T.append` "\n"
                                       return (orbNumber2Orb i nMOs isOpenShell, cubeI)
                                     ) requiredOrbs
       let -- After checking (in the return at the end of the function), if all cubes parsed
@@ -159,6 +159,7 @@ calculateCDD fi eS
           electronDensityDelayed =
             foldl (R.+^) sumNeutralDRepa weightedElectronDensities
       -- Compute the values in parallel
+      T.appendFile logfile $ "Doing calculation now" `T.append` "\n"
       holeDensity <- R.computeP holeDensityDelayed
       electronDensity <- R.computeP electronDensityDelayed
       chargeDensityDifference <- R.computeP $ electronDensityDelayed R.-^ holeDensityDelayed
@@ -181,6 +182,8 @@ calculateCDD fi eS
           then return $ Right (eS ^. nState, (holeCube, electronCube, cddCube))
           else return $ Left "Your cubes are not compatible with each other. They need same grid specification but don't have."
   where
+    -- a log file for the calculation
+    logfile = (fi ^. outputPrefix) ++ [pathSeparator] ++ "REPA.log"
     -- Do the data come from an open shell calculation?
     isOpenShell = case eS ^. wfType of
       Nothing          -> False
@@ -216,4 +219,4 @@ calculateCDD fi eS
 
 writeREPALog :: FileInfo -> String -> IO ()
 writeREPALog fi msg = do
-  T.appendFile ((fi ^. outputPrefix) ++ [pathSeparator] ++ "REPA.log") (T.pack msg)
+  T.appendFile ((fi ^. outputPrefix) ++ [pathSeparator] ++ "REPA.log") (T.pack $ msg ++ "\n")
