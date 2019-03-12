@@ -12,8 +12,10 @@ Exckel is completely written in Haskell, but basically it glues together existin
 
 - *Quantum chemistry software supported:*
   - [Gaussian](gaussian.com) TDDFT/CIS (requires `#p`)
+  - [NWChem](http://www.nwchem-sw.org/index.php/Main_Page) TDDFT/RPA
 - *Cube calculator:*
   - [Multiwfn](http://sobereva.com/multiwfn/) (tested with 3.5, gMultiwfn 3.4.1)
+  - [REPA] (http://hackage.haskell.org/package/repa) (only CDDs from existing orbital cubes)
 - *Cube renderer:*
   - [VMD](https://www.ks.uiuc.edu/Research/vmd/) (tested with 1.9.3) & [Tachyon](http://jedi.ks.uiuc.edu/~johns/raytracer/)
 
@@ -23,49 +25,8 @@ Exckel is a command line programm and can be easily called from a bash script or
 
 By calling `exckel --help`, a quick explanation of all possible keywords is provided.
 
-    exckelargs [OPTIONS]
-      Available command line arguments. At least "--wf" and "--exc" must be
-      specified.
 
-    Common flags:
-         --nocalccubes               Do not calculate cubes for orbitals and
-                                     CDDs.
-         --norenderimages            Do not render images from cubes.
-      -o --outdir=DIR                Destination for all output files and
-                                     existing cubes.
-         --vmd=FILE                  VMD executable. Default is first vmd
-                                     executable found on system.
-         --vmdstate=FILE             VMD visualisation state file. Used to
-                                     determine perspective.
-         --vmdstartup=FILE           VMD script to set up general look. If none
-                                     is specified, it will default to your vmdrc.
-         --vmdtemplate=FILE          VMD template script for plotting.
-      -m --multiwfn=FILE             Multiwfn executable. Default is first
-                                     Multiwfn executable found on system
-      -t --tachyon=FILE              Tachyon executable. Default is first tachyon
-                                     executable found on system
-         --pdformat=STRING           Format of the summary to write with Pandoc.
-                                     Any of [docx, odt, latex]
-         --panref=FILE               Reference docx with formatting hints.
-         --wf=FILE                   Wavefunction file (molden or fchk).
-         --exc=FILE                  Quantum chemistry software output file with
-                                     excited state informations.
-      -i --imgres=INT,INT            Image width x heigth for plotting of cubes.
-      -s --s2filter=FLOAT            Filter excited states by contributions of
-                                     next higher spin state (applies to plotting
-                                     and summary).
-         --foscfilter=FLOAT          Filter excited states by minimum oscillator
-                                     strength (applies only to summary document).
-         --fwhm=FLOAT                Full width at half maximum of the gaussian
-                                     function used to convolute the stick spectrum.
-         --weightfilter=FLOAT        Minimum weight of an excitation to write to
-                                     the summary. (default 0.01)
-         --energyfilter=FLOAT,FLOAT  Energy range (eV) of the excited states of
-                                     interest and plot range for spectrum.
-         --states=[INT]              Plot specific states and ignore all other
-                                     criteria in the summary. Give as "[a,b,c]"
-      -? --help                      Display help message
-      -V --version                   Print version information
+
 
 At least `--wf` and `--exc` must be set and point to your wavefunction file respective your quantum chemistry output file (with excited state information).
 
@@ -98,14 +59,18 @@ If you want to plot specific states, which can not be accessed otherwise (becaus
 *Relevant arguments:*
   - `--outdir`
   - `--multiwfn`
-  - `--nocalccubes`
+  - `--nocalcorbs`
+  - `--nocalccdds`
   - `--energyfilter`
+  - `--cddcalculator`
 
-Charge difference densities and and orbitals are stored in cube files. If they are already present, you can use them. You will need to make sure, that they are available in the output directoy and named properly. Orbital cubes must be called `orb${NORB}.cube`, where `$NORB` is the number of the orbital (start counting from 1) and has no leading zeros. Alpha and beta orbitals of unrestricted wavefunctions are distinguished solely by this number, where the alpha orbitals have numbers from 1 to (number of basis functions) and the beta orbitals have numbers from (number of basis functions + 1) to (number of basis functions * 2). Charge difference density cube need to be labeled as `CDD${NSTATE}.cube`, the corresponding holes as `hole${NSTATE}.cube` and the electrons as `electron${NSTATE}.cube`. If cubes exist (from a previous calculation or calculated on a fast computer or something) and you want to use them, specify `--nocalccubes`. _Otherwise existing cubes will be overwritten_.
+Charge difference densities and and orbitals are stored in cube files. If they are already present, you can use them (give `--nocalcorbs` and/or `--nocalccdds`). You will need to make sure, that they are available in the output directoy and named properly. Orbital cubes must be called `orb${NORB}.cube`, where `$NORB` is the number of the orbital (start counting from 1) and has no leading zeros. Alpha and beta orbitals of unrestricted wavefunctions are distinguished solely by this number, where the alpha orbitals have numbers from 1 to (number of basis functions) and the beta orbitals have numbers from (number of basis functions + 1) to (number of basis functions * 2). Charge difference density cube need to be labeled as `CDD${NSTATE}.cube`, the corresponding holes as `hole${NSTATE}.cube` and the electrons as `electron${NSTATE}.cube`. If cubes exist (from a previous calculation or calculated on a fast computer or something) and you want to use them, specify `--nocalccubes`. _Otherwise existing cubes will be overwritten_.
 
-If cubes are not available yet, Exckel will call an external program to calculate them from the log file and the wavefunction. Be aware, that the precision here is limited by the accuracy of the log file.
+If cubes are not available yet, Exckel will call an external program to calculate orbitals from the log file and the wavefunction.
 
-Currently only Multiwfn is supported to calculate these cubes. By default the first `Multiwfn` executable found, will be used, but this can be changed by pointing `--multiwfn` to an `Multiwfn` executable.
+The CDDs can be calculated by Multiwfn or, if you use a QC code not supported by Multiwfn, such as NWChem, by Exckel internal functions, which neglect cross terms of the CDD. The REPA based internal calculation of CDDs is quite fast and deals with arbitrary high excitations but neglects the cross terms and needs cube for the orbitals, which can be calculated beforehand by Exckel or already be present. Be aware, that the precision here is limited by the accuracy of the log file.
+
+Currently only Multiwfn is supported to calculate orbital cubes. By default the first `Multiwfn` executable found, will be used, but this can be changed by pointing `--multiwfn` to a Multiwfn executable.
 
 ### Plotting cubes
 *Relevant arguments:*
