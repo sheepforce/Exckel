@@ -68,7 +68,7 @@ Charge difference densities and and orbitals are stored in cube files. If they a
 
 If cubes are not available yet, Exckel will call an external program to calculate orbitals from the log file and the wavefunction.
 
-The CDDs can be calculated by Multiwfn or, if you use a QC code not supported by Multiwfn, such as NWChem, by Exckel internal functions, which neglect cross terms of the CDD. The REPA based internal calculation of CDDs is quite fast and deals with arbitrary high excitations but neglects the cross terms and needs cube for the orbitals, which can be calculated beforehand by Exckel or already be present. Be aware, that the precision here is limited by the accuracy of the log file.
+The CDDs can be calculated by Multiwfn or, if you use a QC code not supported by Multiwfn, such as NWChem, by Exckel internal functions, which neglect cross terms of the CDD. The REPA based internal calculation of CDDs is quite fast and deals with arbitrary high excitations but neglects the cross terms and needs cube for the orbitals, which can be calculated beforehand by Exckel or already be present. Be aware, that the precision here is limited by the accuracy of the log file. Also be aware that for REPA based CDDs all orbital cubes needs to be stored in RAM, so you might maybe need a few GiB.
 
 Currently only Multiwfn is supported to calculate orbital cubes. By default the first `Multiwfn` executable found, will be used, but this can be changed by pointing `--multiwfn` to a Multiwfn executable.
 
