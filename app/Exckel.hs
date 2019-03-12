@@ -17,6 +17,7 @@ import qualified Data.Text                      as T
 import qualified Data.Text.IO                   as T
 import qualified Data.Vector                    as V
 import           Exckel.CmdArgs
+import           Exckel.CubeGenerator.Exckel    as CG.Exckel
 import           Exckel.CubeGenerator.MultiWFN  as CG.MWFN
 import           Exckel.CubePlotter.VMD         as CP.VMD
 import           Exckel.DocumentCreator
@@ -177,28 +178,21 @@ getExcitedStates a fi = do
         else do
           logInfo $ "Plotting spectrum as Spectrum.png. See Gnuplot.out and Gnuplot.err"
           SP.GP.plotSpectrum fileInfoWithPlotRange eSfilterByS2 eSfilterByFOsc
-          doCubes a fileInfoWithPlotRange eSfinalFilter
+          doOrbCubes a fileInfoWithPlotRange eSfinalFilter
 
--- | Routine to calculate the cubes. Wraps the CubeGenerators. Jumps to next step if no cubes are to
--- | be calculated.
-doCubes :: ExckelArgs -> FileInfo -> [ExcState]-> IO ()
-doCubes a fi eS = do
+-- | Routine to calculate the orbital cubes. Wraps the CubeGenerators. Jumps to next step if no
+-- | cubes are to be calculated.
+doOrbCubes :: ExckelArgs -> FileInfo -> [ExcState]-> IO ()
+doOrbCubes a fi eS = do
   logHeader "\n----"
-  logHeader "Calculating cube data:"
-  let -- filter the CI determinants of the excited states by weights of excitations, so
-      -- that only excitations with a high weight remain
-      weightFilteredCIDeterminants =
-        map (V.filter (\d -> d ^. weight >= weightfilter a)) $
-        map (^. ciWavefunction) eS
-      weightFilteredExcStates = zipWith (\e d -> e & ciWavefunction .~ d) eS weightFilteredCIDeterminants
-  logMessage "Filtering CI determinants by minimum weights" (show $ weightfilter a)
+  logHeader "Calculating orbital cube data:"
   logMessage
-    "Calculate cubes"
-    ( if (nocalccubes a)
+    "Calculate orbital cubes"
+    ( if (nocalcorbs a)
        then "no"
        else "yes"
     )
-  if (nocalccubes a)
+  if (nocalcorbs a)
     -- cubes shall not be calculated
     then return ()
     -- cubes shall be calculated
@@ -211,15 +205,96 @@ doCubes a fi eS = do
             Nothing -> errMessage "MultiWFN executable not found. Please specify one. Will skip cube calculation."
             -- MultiWFN executable has been found
             Just exe -> do
+              let -- filter the CI determinants of the excited states by weights of excitations, so
+                  -- that only excitations with a high weight remain
+                  weightFilteredCIDeterminants =
+                    map (V.filter (\d -> d ^. weight >= weightfilter a)) $
+                    map (^. ciWavefunction) eS
+                  weightFilteredExcStates = zipWith (\e d -> e & ciWavefunction .~ d) eS weightFilteredCIDeterminants
+              let excitedStates = case (cddcalculator a) of
+                    "repa" -> eS
+                    "multiwfn" -> weightFilteredExcStates
+                    _ -> eS
+              case (cddcalculator a) of
+                "multiwfn" -> logMessage "Filtering CI determinants by minimum weights" (show $ weightfilter a)
+                _ -> return ()
               let fileInfo = fi
                     & cubeGenerator . cgExePath .~ exe
               logMessage "CubeCalculator" (fileInfo ^. cubeGenerator . cgExePath)
-              logMessage "Orbitals to plot" (show . nub . concat . map getOrbNumbers $ eS)
+              logMessage "Orbitals to plot" (show . nub . concat . map getOrbNumbers $ excitedStates)
               logInfo "Calculating orbital cubes. See \"MultiWFN.out\" and \"MultiWFN.err\""
-              CG.MWFN.calculateOrbs fileInfo (nub . concat . map getOrbNumbers $ weightFilteredExcStates)
-              logInfo "Calculating CDDs. See \"MultiWFN.out\" and \"MultiWFN.err\""
-              CG.MWFN.calculateCDDs fileInfo (map (^. nState) eS)
-  doPlots a fi weightFilteredExcStates
+              CG.MWFN.calculateOrbs fileInfo (nub . concat . map getOrbNumbers $ excitedStates)
+  doCDDCubes a fi eS
+
+-- | Routine to calculate the charge density differences. Wraps cube generators.
+doCDDCubes :: ExckelArgs -> FileInfo -> [ExcState]-> IO ()
+doCDDCubes a fi eS = do
+  logHeader "\n----"
+  logHeader "Calculating charge density difference cube data:"
+  logMessage
+    "Calculate CDD cubes"
+    ( if (nocalccdds a)
+        then "No"
+        else "Yes"
+    )
+  outDirContents <- listDirectory (fi ^. outputPrefix)
+  let allCubes = filter (\x -> (takeExtension x) == ".cube") $ outDirContents
+  absoluteCubes <- mapM makeAbsolute $ map ((fi ^. outputPrefix ++ "/") ++) allCubes
+  let orbCubesFiles = filter (\x -> (take 3 . takeBaseName $ x) == "orb") absoluteCubes
+      fileInfoWithOrbs = fi & cubeFiles . orbCubes .~ Just orbCubesFiles
+  logMessage "Orbital cubes" (show $ map takeFileName <$> (fileInfoWithOrbs ^. cubeFiles . orbCubes))
+  if (nocalccdds a)
+    then return ()
+    else do
+      case (cddcalculator a) of
+        "repa" -> do
+          logMessage "CDD calculator" "REgular Parallel Arrays"
+          logInfo "Calculating CDDs in parallel using REgular Parallel Arrays (internal, parallel)"
+          cddTriples <- mapM (CG.Exckel.calculateCDD fileInfoWithOrbs) eS
+          mapM_ (\i ->
+            case i of
+              Left e -> errMessage e
+              Right (i, (h, e, d)) -> do
+                T.writeFile
+                  ((fileInfoWithOrbs ^. outputPrefix) ++ [pathSeparator] ++ "hole" ++ show i ++ ".cube")
+                  (writeCube h)
+                T.writeFile
+                  ((fileInfoWithOrbs ^. outputPrefix) ++ [pathSeparator] ++ "electron" ++ show i ++ ".cube")
+                  (writeCube e)
+                T.writeFile
+                  ((fileInfoWithOrbs ^. outputPrefix) ++ [pathSeparator] ++ "CDD" ++ show i ++ ".cube")
+                  (writeCube d)
+            ) cddTriples
+        "multiwfn" -> do
+          case fi ^. cubeGenerator of
+            -- program to calculate cubes from wavefunction is MultiWFN
+            MultiWFN{} -> do
+              case (multiwfn a) of
+                -- MultiWFN executable has not been found
+                Nothing -> errMessage "MultiWFN executable not found. Please specify one. Will skip cube calculation."
+                -- MultiWFN executable has been found
+                Just exe -> do
+                  logMessage "CDD calculator" (show exe)
+                  logInfo "Calculating CDDs. See \"MultiWFN.out\" and \"MultiWFN.err\""
+                  CG.MWFN.calculateCDDs fileInfoWithOrbs (map (^. nState) eS)
+        _ -> do
+          logInfo "Invalid specification of CDD calculator. Defaulting to internal REPA."
+          cddTriples <- mapM (CG.Exckel.calculateCDD fileInfoWithOrbs) eS
+          mapM_ (\i ->
+            case i of
+              Left e -> errMessage e
+              Right (i, (h, e, d)) -> do
+                T.writeFile
+                  ((fileInfoWithOrbs ^. outputPrefix) ++ [pathSeparator] ++ "hole" ++ show i ++ ".cube")
+                  (writeCube h)
+                T.writeFile
+                  ((fileInfoWithOrbs ^. outputPrefix) ++ [pathSeparator] ++ "electron" ++ show i ++ ".cube")
+                  (writeCube e)
+                T.writeFile
+                  ((fileInfoWithOrbs ^. outputPrefix) ++ [pathSeparator] ++ "CDD" ++ show i ++ ".cube")
+                  (writeCube d)
+            ) cddTriples
+  doPlots a fileInfoWithOrbs eS
 
 -- | Call plotter to visualise all cubes found.
 doPlots :: ExckelArgs -> FileInfo -> [ExcState] -> IO ()
@@ -240,16 +315,13 @@ doPlots a fi eS = do
       outDirContents <- listDirectory (fi ^. outputPrefix)
       let allCubes = filter (\x -> (takeExtension x) == ".cube") $ outDirContents
       absoluteCubes <- mapM makeAbsolute $ map ((fi ^. outputPrefix ++ "/") ++) allCubes
-      let orbCubesFiles = filter (\x -> (take 3 . takeBaseName $ x) == "orb") absoluteCubes
-          cddCubesFiles = filter (\x -> (take 3 . takeBaseName $ x) == "CDD") absoluteCubes
+      let cddCubesFiles = filter (\x -> (take 3 . takeBaseName $ x) == "CDD") absoluteCubes
           electronCubesFiles = filter (\x -> (take 8 . takeBaseName $ x) == "electron") absoluteCubes
           holeCubesFiles = filter (\x -> (take 4 . takeBaseName $ x) == "hole") absoluteCubes
           fileInfoWithCubes = fi
-            & cubeFiles . orbCubes .~ Just orbCubesFiles
             & cubeFiles . cddCubes .~ Just cddCubesFiles
             & cubeFiles . electronCubes .~ Just electronCubesFiles
             & cubeFiles . holeCubes .~ Just holeCubesFiles
-      logMessage "Orbital cubes" (show $ map takeFileName <$> (fileInfoWithCubes ^. cubeFiles . orbCubes))
       logMessage "CDD cubes" (show $ map takeFileName <$> (fileInfoWithCubes ^. cubeFiles . cddCubes))
       logMessage "Electron density cubes" (show $ map takeFileName <$> (fileInfoWithCubes ^. cubeFiles . electronCubes))
       logMessage "Hole density cubes" (show $ map takeFileName <$> (fileInfoWithCubes ^. cubeFiles . holeCubes))
@@ -342,6 +414,12 @@ doSummaryDocument a fi eS = do
         & imageFiles . holeImages .~ Just holeImageFilesIndexed
         & pandocInfo . pdRefDoc .~ absPanRefDoc
         & pandocInfo . pdDocType .~ panFormat
+      -- Take only excited determinants into account, if they contribute with minimum weight in
+      -- summary document.
+      weightFilteredCIDeterminants =
+        map (V.filter (\d -> d ^. weight >= weightfilter a)) $
+        map (^. ciWavefunction) eS
+      weightFilteredExcStates = zipWith (\e d -> e & ciWavefunction .~ d) eS weightFilteredCIDeterminants
   logMessage "Pandoc output format for summary" (show $ fileInfoWithImagesAndPandoc ^. pandocInfo . pdDocType)
   logMessage "Pandoc reference document" ((fromMaybe "Not set (default Pandoc formatting) " $ fileInfoWithImagesAndPandoc ^. pandocInfo . pdRefDoc) ++ " (if \"panref.tmp\", this was autogenerated)")
   logMessage "Images for these orbitals available" (show $ map fst <$> fileInfoWithImagesAndPandoc ^. imageFiles . orbImages)
@@ -349,7 +427,7 @@ doSummaryDocument a fi eS = do
   logMessage "Electron images for these states available" (show $ map fst <$> fileInfoWithImagesAndPandoc ^. imageFiles . electronImages)
   logMessage "Hole images for these states available" (show $ map fst <$> fileInfoWithImagesAndPandoc ^. imageFiles . holeImages)
   --
-  let summary = excitationSummary fileInfoWithImagesAndPandoc eS
+  let summary = excitationSummary fileInfoWithImagesAndPandoc weightFilteredExcStates
   case fileInfoWithImagesAndPandoc ^. pandocInfo . pdDocType of
     DOCX -> do
       logMessage "Summary document format" "Microsoft Word Document (docx)"

@@ -69,7 +69,21 @@ module Exckel.Types
 , pandocInfo
 , spectrumPlotter
 , selStates
+, Cube(..)
+, comment
+, volumeOrigin
+, voxelDimension
+, volumeVectorA
+, volumeVectorB
+, volumeVectorC
+, atoms
+, volumetricData
+, Atom(..)
+, atomicNumber
+, coordinate
 ) where
+import           Data.Array.Repa       (Array, DIM3, U, (:.))
+import qualified Data.Array.Repa       as R
 import qualified Data.ByteString.Char8 as B
 import           Data.Maybe
 import qualified Data.Text             as T
@@ -300,3 +314,26 @@ instance (Default FileInfo) where
     , _spectrumPlotter = def
     , _selStates = Nothing
     }
+
+-- | Atoms stored in a gaussian cube file. Atomic coordinates are assumed to be allways in Bohr.
+data Atom = Atom
+  { _atomicNumber :: Int
+  , _coordinate   :: (Double, Double, Double)
+  }
+  deriving (Eq, Show)
+makeLenses ''Atom
+
+-- | A gaussian cube file stored in an array. Units are assumed to be allways in Bohr and the parser
+-- | takes care of this.
+data Cube = Cube
+  { _comment        :: String
+  , _volumeOrigin   :: (Double, Double, Double)
+  , _voxelDimension :: (Int, Int, Int)
+  , _volumeVectorA  :: (Double, Double, Double)
+  , _volumeVectorB  :: (Double, Double, Double)
+  , _volumeVectorC  :: (Double, Double, Double)
+  , _atoms          :: [Atom]
+  , _volumetricData :: Array U DIM3 Double
+  }
+  deriving (Eq, Show)
+makeLenses ''Cube

@@ -18,7 +18,8 @@ import           System.IO
 import           System.IO.Unsafe
 
 data ExckelArgs = ExckelArgs
-  { nocalccubes    :: Bool
+  { nocalcorbs     :: Bool
+  , nocalccdds     :: Bool
   , norenderimages :: Bool
   , outdir         :: FilePath
   , vmd            :: Maybe FilePath
@@ -26,6 +27,7 @@ data ExckelArgs = ExckelArgs
   , vmdStartUp     :: Maybe FilePath
   , vmdTemplate    :: Maybe FilePath
   , multiwfn       :: Maybe FilePath
+  , cddcalculator  :: String
   , tachyon        :: Maybe FilePath
   , pdFormat       :: String
   , panref         :: Maybe FilePath
@@ -41,8 +43,12 @@ data ExckelArgs = ExckelArgs
   } deriving (Show, Data, Typeable)
 
 exckelArgs = ExckelArgs
-  { nocalccubes    =  False
-                   &= help "Do not calculate cubes for orbitals and CDDs."
+  { nocalcorbs      =  False
+                   &= help "Do not calculate cubes for orbitals."
+                   &= typ "BOOL"
+
+  , nocalccdds      =  False
+                   &= help "Do not calculate charge density difference cubes."
                    &= typ "BOOL"
 
   , norenderimages =  False
@@ -72,6 +78,10 @@ exckelArgs = ExckelArgs
   , multiwfn       =  (unsafePerformIO $ findExecutable "Multiwfn")
                    &= help "Multiwfn executable. Default is first Multiwfn executable found on system"
                    &= typFile
+
+  , cddcalculator  =  "repa"
+                   &= help "Program to use to calculate charge density differnces. multiwfn | repa"
+                   &= typ "STRING"
 
   , tachyon        =  (unsafePerformIO $ findExecutable "tachyon")
                    &= help "Tachyon executable. Default is first tachyon executable found on system"

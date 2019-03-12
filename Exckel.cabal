@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 10bc1fa4849ed766a227faf457226f46e64e2081670bf420bc20d7aebea0dbbf
+-- hash: effb8779622fa0f333aaf2f1fd197da7e1288c0c02537d7ab930a739287ced5b
 
 name:           Exckel
-version:        0.1.1.0
+version:        0.1.2.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/Exckel#readme>
 homepage:       https://github.com/sheepforce/Exckel#readme
 bug-reports:    https://github.com/sheepforce/Exckel/issues
@@ -32,6 +32,7 @@ source-repository head
 library
   exposed-modules:
       Exckel.CmdArgs
+      Exckel.CubeGenerator.Exckel
       Exckel.CubeGenerator.MultiWFN
       Exckel.CubePlotter.VMD
       Exckel.DocumentCreator
@@ -60,6 +61,7 @@ library
     , pandoc >=2.5
     , pandoc-types >=1.17.5.4
     , process >=1.6.3.0
+    , repa >=3.4.1.4
     , split >=0.2.2.3
     , text >=1.2.3.1
     , unordered-containers >=0.2.9.0
