@@ -4,6 +4,7 @@ module Exckel.EmbedContents
 , exckelLogo
 , defaultDocx
 , defaultODT
+, spectrifyPy
 ) where
 import qualified Data.ByteString       as B
 import qualified Data.ByteString.Char8 as BC
@@ -25,3 +26,7 @@ defaultDocx = $(embedFile $ "data" ++ [pathSeparator] ++ "DefaultRef.docx")
 -- | Reference odt document with formatting hints for pando
 defaultODT :: B.ByteString
 defaultODT = $(embedFile $ "data" ++ [pathSeparator] ++ "DefaultRef.odt")
+
+-- | Spectrify python program
+spectrifyPy :: B.ByteString
+spectrifyPy = $(embedFile $ "spectrify" ++ [pathSeparator] ++ "spectrify.py")
