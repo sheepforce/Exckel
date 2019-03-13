@@ -7,35 +7,36 @@ everything else. There are some assumptions made here.
 -}
 import           Control.Applicative
 import           Control.Monad.IO.Class
-import           Data.Attoparsec.Text           hiding (take)
-import qualified Data.ByteString.Char8          as BS
-import qualified Data.ByteString.Lazy           as BL
+import           Data.Attoparsec.Text             hiding (take)
+import qualified Data.ByteString.Char8            as BS
+import qualified Data.ByteString.Lazy             as BL
 import           Data.Char
 import           Data.List
 import           Data.Maybe
-import qualified Data.Text                      as T
-import qualified Data.Text.IO                   as T
-import qualified Data.Vector                    as V
+import qualified Data.Text                        as T
+import qualified Data.Text.IO                     as T
+import qualified Data.Vector                      as V
 import           Exckel.CmdArgs
-import           Exckel.CubeGenerator.Exckel    as CG.Exckel
-import           Exckel.CubeGenerator.MultiWFN  as CG.MWFN
-import           Exckel.CubePlotter.VMD         as CP.VMD
+import           Exckel.CubeGenerator.Exckel      as CG.Exckel
+import           Exckel.CubeGenerator.MultiWFN    as CG.MWFN
+import           Exckel.CubePlotter.VMD           as CP.VMD
 import           Exckel.DocumentCreator
 import           Exckel.EmbedContents
 import           Exckel.ExcUtils
-import           Exckel.Parser                  hiding (vmdState)
-import qualified Exckel.SpectrumPlotter.Gnuplot as SP.GP
+import           Exckel.Parser                    hiding (vmdState)
+import qualified Exckel.SpectrumPlotter.Gnuplot   as SP.GP
+import qualified Exckel.SpectrumPlotter.Spectrify as SP.SP
 import           Exckel.Types
 import           Lens.Micro.Platform
 import           Paths_Exckel
 import           System.Console.ANSI
-import           System.Console.CmdArgs         hiding (def)
+import           System.Console.CmdArgs           hiding (def)
 import           System.Directory
 import           System.FilePath
 import           System.IO
-import           Text.Pandoc                    hiding (FileInfo, def,
-                                                 getDataFileName)
-import qualified Text.Pandoc                    as PD (def)
+import           Text.Pandoc                      hiding (FileInfo, def,
+                                                   getDataFileName)
+import qualified Text.Pandoc                      as PD (def)
 import           Text.Printf
 import           Text.Read
 
@@ -66,29 +67,29 @@ main = do
   arguments <- cmdArgs exckelArgs
   -- look for ImageMagicks executable on the system
   imageMagick <- findExecutable "convert"
+  {-
   -- look for gnuplot executable on the system
   gnuplot <- findExecutable "gnuplot"
+  -}
   -- make sure output directory exists
   hasOutDir <- doesDirectoryExist (outdir arguments)
   case hasOutDir of
     True  -> return ()
     False -> createDirectory (outdir arguments)
-  case (imageMagick, gnuplot) of
+  case imageMagick of
     -- if it is not present, dont continue
-    (Nothing, _) -> errMessage "Could not find imageMagick's \"convert\". Will abbort here."
-    (_, Nothing) -> errMessage "Could not find gnuplot. Will abort here."
-    -- if found, call checker for minimum input
-    (Just convert, Just gnuplot) -> checkInitial (convert, gnuplot) arguments
+    Nothing -> errMessage "Could not find imageMagick's \"convert\". Will abbort here."
+    -- If found continue normally
+    Just convert -> checkInitial convert arguments
 
 
 -- | Initial check if enough informations are provided and if everything requested makes sense. If
 -- | not print an error and exit. If yes, prepare FileInfo for further use and go for next step.
 -- | Expansion to absolute paths happening here for some records.
 -- |   imC -> path to ImageMagick's convert
--- |   gnp -> path to Gnuplot
 -- |   a -> ExckelArgs data structure coming from the initial call
-checkInitial :: (FilePath, FilePath) -> ExckelArgs -> IO ()
-checkInitial (imC, gnp) a = do
+checkInitial :: FilePath -> ExckelArgs -> IO ()
+checkInitial imC a = do
   logHeader "----"
   logHeader "Initial file checks:"
   -- have potentially selected states provided by command line argument, chosen manually
@@ -110,7 +111,6 @@ checkInitial (imC, gnp) a = do
             & waveFunctionFile .~ wfAP
             & outputPrefix .~ outPrefAP
             & imConvertExePath .~ imC
-            & spectrumPlotter . spExePath .~ gnp
             & spectrumPlotter . spBroadening .~ fromMaybe 0.3 (fwhm a)
             & selStates .~ selectedStates
             & calcSoftware .~ calcSoft
@@ -118,7 +118,6 @@ checkInitial (imC, gnp) a = do
       logMessage "Wavefunction file" (fileInfo ^. waveFunctionFile)
       logMessage "Work directoring" (fileInfo ^. outputPrefix)
       logMessage "ImageMagick executable" (fileInfo ^. imConvertExePath)
-      logMessage "Plotting software executable" (fileInfo ^. spectrumPlotter . spExePath)
       logMessage "Calculation software was" (show (fileInfo ^. calcSoftware))
       getExcitedStates a fileInfo
     -- one or both of wavefunction and/or logfile are undefined
@@ -183,9 +182,20 @@ getExcitedStates a fi = do
       if (length eSfinalFilter <= 0)
         then errMessage "No states left to plot. Will exit here"
         else do
-          logInfo $ "Plotting spectrum as Spectrum.png. See Gnuplot.out and Gnuplot.err"
-          SP.GP.plotSpectrum fileInfoWithPlotRange eSfilterByS2 eSfilterByFOsc
-          doOrbCubes a fileInfoWithPlotRange eSfinalFilter
+          case (spectrum a) of
+            "spectrify" -> do
+              logInfo $ "Plotting spectrum as Spectrum.png See Spectrify.out and Spectrify.err"
+              SP.SP.plotSpectrum fileInfoWithPlotRange eSfilterByS2 eSfilterByFOsc
+              doOrbCubes a fileInfoWithPlotRange eSfinalFilter
+            "gnuplot" -> do
+              gnuplot <- findExecutable "gnuplot"
+              case gnuplot of
+                Nothing -> errMessage "Could not find gnuplot executable. Will exit here"
+                Just exe -> do
+                  let fileInfoWithSPExePath = fileInfoWithPlotRange & spectrumPlotter . spExePath .~ exe
+                  logInfo $ "Plotting spectrum as Spectrum.png. See Gnuplot.out and Gnuplot.err"
+                  SP.GP.plotSpectrum fileInfoWithSPExePath eSfilterByS2 eSfilterByFOsc
+                  doOrbCubes a fileInfoWithPlotRange eSfinalFilter
 
 -- | Routine to calculate the orbital cubes. Wraps the CubeGenerators. Jumps to next step if no
 -- | cubes are to be calculated.

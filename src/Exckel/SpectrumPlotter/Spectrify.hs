@@ -32,6 +32,8 @@ plotSpectrum fi es fes = do
   T.writeFile (outDir ++ [pathSeparator] ++ "Spectrum_Filtered_Peaks.dat") filteredPeaks
 
   B.writeFile (outDir ++ [pathSeparator] ++ "spectrify.py") spectrifyPy
+  permOfSpectrify <- getPermissions (outDir ++ [pathSeparator] ++ "spectrify.py")
+  setPermissions (outDir ++ [pathSeparator] ++ "spectrify.py") (permOfSpectrify {executable = True})
 
   (Just spectrifyInput, Just spectrifyOutput, Just spectrifyError, spectrifyProcH) <-
     createProcess ( proc (outDir ++ [pathSeparator] ++ "spectrify.py")
@@ -40,12 +42,22 @@ plotSpectrum fi es fes = do
                          , outDir ++ [pathSeparator] ++ "Spectrum_Filtered_Peaks.dat"
                          , outDir ++ [pathSeparator] ++ "Spectrum_Peaks.dat"
                          , "--exckel-grid"
-                         , "--exckel-color=\"#ff5000\""
+                         , "--exckel-color"
+                         , "#ff5000"
                          , "--no-plot"
                          , "--top-eV"
-                         , "--spectrum-file-extension=\"png\""
+                         , "--spectrum-file-extension"
+                         , "png"
+                         , "--hwhh"
+                         , show (σ/2.0)
+                         , "--peak-labels"
                          ]
                   )
+    { std_out = CreatePipe
+    , std_in = CreatePipe
+    , std_err = CreatePipe
+    , cwd = Just outDir
+    }
 
   hSetBuffering spectrifyOutput LineBuffering
   hSetBuffering spectrifyError LineBuffering
@@ -71,3 +83,5 @@ plotSpectrum fi es fes = do
   renameFile (outDir ++ [pathSeparator] ++ "spectra.png") (outDir ++ [pathSeparator] ++ "Spectrum.png")
   where
     outDir = fi ^. outputPrefix
+    fwhm = fi ^. spectrumPlotter . spBroadening
+    σ = fwhm / (2 * sqrt(log 2))
