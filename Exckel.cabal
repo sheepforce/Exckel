@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 5fc74faf463667954ce029335b83d443971c4905acead7aa48a0cbee8fd2e05d
+-- hash: d4650ee8e652fba023cfc3c7da71bd3679108f542cef6611ff87a2a6884fbaec
 
 name:           Exckel
 version:        0.2.0.0
@@ -24,6 +24,7 @@ extra-source-files:
     data/VMD.tcl
     data/DefaultRef.docx
     data/DefaultRef.odt
+    spectrify/spectrify.py
 
 source-repository head
   type: git
@@ -40,6 +41,8 @@ library
       Exckel.ExcUtils
       Exckel.Parser
       Exckel.SpectrumPlotter.Gnuplot
+      Exckel.SpectrumPlotter.SharedFunctions
+      Exckel.SpectrumPlotter.Spectrify
       Exckel.Types
   other-modules:
       Paths_Exckel

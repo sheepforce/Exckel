@@ -13,8 +13,10 @@ import           Lens.Micro.Platform
 import           System.Directory
 import           System.FilePath
 import           System.IO
+import qualified Data.Text.IO as T
 import           System.Process
 import           Text.Printf
+import Exckel.SpectrumPlotter.SharedFunctions
 
 -- | Plots the spectrum to a png file. Uses the informations about excited states. It takes
 -- |   - fi -> the FileInfo data type for paths
@@ -36,10 +38,11 @@ plotSpectrum fi es fes = do
   hSetBuffering gnuplotOutput LineBuffering
   hSetBuffering gnuplotError LineBuffering
 
-  writeFile (outDir ++ [pathSeparator] ++ "Spectrum_Peaks.dat") (makeTable3 peaksLabeled)
-  writeFile (outDir ++ [pathSeparator] ++ "Spectrum_Conv_Epsilon.dat") (makeTable2 convolutedSpectrumEpsilon)
-  writeFile (outDir ++ [pathSeparator] ++ "Spectrum_Conv_FOsc.dat") (makeTable2 convolutedSpectrumFOsc)
-  writeFile (outDir ++ [pathSeparator] ++ "Spectrum_Filtered_Peaks.dat") (makeTable3 peaksFiltredLabeled)
+  let (peaks, convolutedEpsilon, convolutedFosc, filteredPeaks) = createDataFiles fi es fes
+  T.writeFile (outDir ++ [pathSeparator] ++ "Spectrum_Peaks.dat") peaks
+  T.writeFile (outDir ++ [pathSeparator] ++ "Spectrum_Conv_Epsilon.dat") convolutedEpsilon
+  T.writeFile (outDir ++ [pathSeparator] ++ "Spectrum_Conv_FOsc.dat") convolutedFosc
+  T.writeFile (outDir ++ [pathSeparator] ++ "Spectrum_Filtered_Peaks.dat") filteredPeaks
 
   gnuplotLogFile <- openFile (outDir ++ [pathSeparator] ++ "Gnuplot.out") WriteMode
   gnuplotErrFile <- openFile (outDir ++ [pathSeparator] ++ "Gnuplot.err") WriteMode
@@ -83,24 +86,6 @@ plotSpectrum fi es fes = do
     fwhm = fi ^. spectrumPlotter . spBroadening
     σ = fwhm / (2 * sqrt(log 2))
     peaksEnergy = map hartree2eV . map (^. relEnergy) $ es
-    peaksFOsc = map (^. oscillatorStrength) es
-    peaks = zip peaksEnergy peaksFOsc
-    labels = map (^. nState) $ es
-    peaksLabeled = zip3 peaksEnergy peaksFOsc labels
     (eMin, eMax) = case (fi ^. spectrumPlotter . spERange) of
       Nothing -> ((minimum $ peaksEnergy) - 0.5, (maximum $ peaksEnergy) + 0.5)
       Just (a, b) -> (a, b)
-    grid = [eMin, eMin + 0.01 .. eMax]
-    convolutedSpectrumFOsc = convolutionSum (gauss fwhm) peaks grid
-    convolutedSpectrumEpsilon =
-      map (\(e, f) -> (e, oscStrength2Epsilon fwhm f)) $ convolutedSpectrumFOsc
-    peaksFilteredEnergy = map hartree2eV . map (^. relEnergy) $ fes
-    peaksFilteredFOsc = map (^. oscillatorStrength) $ fes
-    peaksFilteredlabels = map (^. nState) $ fes
-    peaksFiltredLabeled = zip3 peaksFilteredEnergy peaksFilteredFOsc peaksFilteredlabels
-
-makeTable2 :: PrintfArg a => [(a, a)] -> String
-makeTable2 spec = concatMap (\(a, b) -> printf "%8.4F    %8.4F\n" a b) spec
-
-makeTable3 :: (PrintfArg a, PrintfArg b) => [(a, a, b)] -> String
-makeTable3 spec = concatMap (\(a, b, c) -> printf "%8.4F    %8.4F    %3d\n" a b c) spec
