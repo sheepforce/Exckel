@@ -41,6 +41,7 @@ data ExckelArgs = ExckelArgs
   , energyfilter   :: Maybe (Double, Double)
   , states         :: Maybe String
   , calcsoftware   :: String
+  , calctype       :: String
   } deriving (Show, Data, Typeable)
 
 exckelArgs = ExckelArgs
@@ -133,7 +134,12 @@ exckelArgs = ExckelArgs
                    &= typ "[INT]"
 
   , calcsoftware   =  "gaussian"
-                   &= help "Calculation software, that produced the output file. [gaussian | nwchem]"
+                   &= help "Calculation software, that produced the output file. [gaussian | nwchem | mrcc]"
                    &= typ "STRING"
+
+  , calctype       =  "rc-adc2"
+                   &= help "Calculation type. [tddft | rc-adc2 (reduced cost ADC(2))]"
+                   &= typ "STRING"
+
   } &= summary "The Exckel automatic summary programm"
     &= help "Available command line arguments. At least \"--wf\" and \"--exc\" must be specified."

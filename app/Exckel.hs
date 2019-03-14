@@ -101,10 +101,27 @@ checkInitial (imC, gnp) a = do
       excAP <- makeAbsolute l
       wfAP <- makeAbsolute w
       outPrefAP <- makeAbsolute (outdir a)
-      let calcSoft = case (calcsoftware a) of
+      let calculationType = case (calctype a) of
+            "rc-adc2" -> ADC
+              { _order = 2
+              , _redCost = True
+              }
+            "tddft" -> TDDFT
+              { _fullTDDFT = True
+              }
+          softwareUsed = case (calcsoftware a) of
             "gaussian" -> Gaussian
+              { _calcType = calculationType
+              }
             "nwchem"   -> NWChem
+              { _calcType = calculationType
+              }
+            "mrcc"     -> MRCC
+              { _calcType = calculationType
+              }
             _          -> Gaussian
+              { _calcType = calculationType
+              }
           fileInfo = def
             & logFile .~ excAP
             & waveFunctionFile .~ wfAP
@@ -113,7 +130,7 @@ checkInitial (imC, gnp) a = do
             & spectrumPlotter . spExePath .~ gnp
             & spectrumPlotter . spBroadening .~ fromMaybe 0.3 (fwhm a)
             & selStates .~ selectedStates
-            & calcSoftware .~ calcSoft
+            & calcSoftware .~ softwareUsed
       logMessage "QC log file with excited states" (fileInfo ^. logFile)
       logMessage "Wavefunction file" (fileInfo ^. waveFunctionFile)
       logMessage "Work directoring" (fileInfo ^. outputPrefix)
@@ -145,9 +162,22 @@ getExcitedStates a fi = do
   logInfo "Parsing log file ..."
   logRaw <- T.readFile (fi ^. logFile)
   let logParsed = case (fi ^. calcSoftware) of
-        -- if guassian, use the gaussian parser
-        Gaussian -> parseOnly gaussianLogTDDFT logRaw
-        NWChem   -> parseOnly nwchemTDDFT logRaw
+        Gaussian
+          { _calcType = TDDFT
+              { _fullTDDFT = True
+              }
+          } -> parseOnly gaussianLogTDDFT logRaw
+        NWChem
+          { _calcType = TDDFT
+              { _fullTDDFT = True
+              }
+          } -> parseOnly nwchemTDDFT logRaw
+        MRCC
+          { _calcType = ADC
+              { _order = _
+              , _redCost = _
+              }
+          } -> parseOnly mrccADC logRaw
   case logParsed of
     -- if parsing went wrong show the error
     Left err -> do

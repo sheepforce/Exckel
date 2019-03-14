@@ -49,7 +49,12 @@ module Exckel.Types
 , cddImages
 , electronImages
 , holeImages
+, CalcType(..)
+, fullTDDFT
+, order
+, redCost
 , CalcSoftware(..)
+, calcType
 , PDDocType(..)
 , PandocInfo(..)
 , pdRefDoc
@@ -90,7 +95,7 @@ import qualified Data.Array.Repa       as R
 import qualified Data.ByteString.Char8 as B
 import           Data.Maybe
 import qualified Data.Text             as T
-import           Data.Vector
+import           Data.Vector hiding ((++))
 import           Exckel.EmbedContents
 import           Lens.Micro.Platform
 import           System.Directory
@@ -262,8 +267,59 @@ instance (Default ImageFiles) where
     , _holeImages = Nothing
     }
 
+-- | Type of the calculation, that has been performed.
+data CalcType =
+    TDDFT
+      { _fullTDDFT :: Bool
+      }
+  | ADC
+      { _order   :: Int
+      , _redCost :: Bool
+      }
+  deriving (Eq)
+makeLenses ''CalcType
+instance (Default CalcType) where
+  def = TDDFT
+    { _fullTDDFT = True
+    }
+instance (Show CalcType) where
+  show a = case a of
+    TDDFT{} ->
+        ( case (_fullTDDFT a) of
+            True  -> "Linear Response "
+            False -> "TDA "
+        ) ++
+        "TDDFT"
+    ADC{} ->
+        ( case (_redCost a) of
+            True -> "Reduced Cost "
+            False -> ""
+        ) ++
+        "ADC(" ++ (show $ _order a) ++ ")"
+
 -- | Quantum chemistry program from which the logfile comes
-data CalcSoftware = Gaussian | NWChem deriving (Eq, Show)
+data CalcSoftware =
+    Gaussian
+      { _calcType :: CalcType
+      }
+  | NWChem
+      { _calcType :: CalcType
+      }
+  | MRCC
+      { _calcType :: CalcType
+      }
+  deriving Eq
+makeLenses ''CalcSoftware
+instance (Default CalcSoftware) where
+  def = Gaussian
+    { _calcType = def
+    }
+instance (Show CalcSoftware) where
+  show a = case a of
+    Gaussian{} -> "Gaussian with " ++ (show $ a ^. calcType)
+    NWChem{}   -> "NWchem with " ++ (show $ a ^. calcType)
+    MRCC{}     -> "MRCC with" ++ (show $ a ^. calcType)
+
 
 -- | Supported output formats for the excitation summary
 data PDDocType = DOCX | ODT | LATEX deriving (Eq, Show)
@@ -317,7 +373,7 @@ makeLenses ''FileInfo
 instance (Default FileInfo) where
   def = FileInfo
     { _logFile = ""
-    , _calcSoftware = Gaussian
+    , _calcSoftware = def
     , _waveFunctionFile = ""
     , _orbGenerator = def
     , _cddGenerator = def
