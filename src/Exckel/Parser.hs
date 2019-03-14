@@ -251,7 +251,7 @@ nwchemTDDFT = do
       }
   return states'
 
--- | Parse mrcc output of an ADC2 calculation
+-- | Parse mrcc output of an ADC2 calculation. They can be closed shell only, currently i think
 mrccADC :: Parser [ExcState]
 mrccADC = do
   -- Multiplicity
@@ -271,6 +271,7 @@ mrccADC = do
   return $ T.pack . show $ nBasisFunctions'
   -- excited states
   cisOrderedStates <- many1 $ do
+    {-
     -- Beginning of an excited state block. Unfortunately, this occurs 2 times for each state. Once
     -- for the MP2 part and once for ADC(2). The parser is very exact here and includes all the
     -- uninteresting parts, to make sure to not match MP2 blocks but only the ADC(2) blocks.
@@ -291,6 +292,10 @@ mrccADC = do
     endOfLine
     _ <- takeWhile isHorizontalSpace
     _ <- string "ADC(2) excitation energy:"
+    -}
+    -- parsing with "Final result in atomic units for root" leads to the parser entering a "many1"
+    -- loop, i think, which can not be satisfied. Therefore only look for "ADC(2) excitation energy"
+    _ <- manyTill anyChar (string "ADC(2) excitation energy:")
     _ <- takeWhile isHorizontalSpace
     relEnergy' <- double
     endOfLine
@@ -337,8 +342,6 @@ mrccADC = do
       , _ciWavefunction     = V.fromList ciDeterminants'
       , _nBasisFunctions    = nBasisFunctions'
       }
-  return cisOrderedStates
-  {-
   -- MRCC has the excited state oscillator strength not together with the excited states, but at
   -- at the end of the output file. At the end also the correct order of the excited states is
   -- given. Previously, this has only been the CIS ordering of states, not the ADC(2) ordering.
@@ -350,6 +353,7 @@ mrccADC = do
     adc2State <- decimal
     _ <- takeWhile isHorizontalSpace
     cisState <- decimal
+    _ <- takeWhile isHorizontalSpace
     _ <- double -- x component of dipole
     _ <- takeWhile isHorizontalSpace
     _ <- double -- y component of dipole
@@ -359,84 +363,39 @@ mrccADC = do
     _ <- double -- total dipole strength
     _ <- takeWhile isHorizontalSpace
     adc2Fosc <- double
+    _ <- takeWhile isHorizontalSpace
+    endOfLine
     return (adc2State, adc2Fosc)
   let energySortedADC2States = sortBy compareExcState cisOrderedStates
       correctADC2states =
         zipWith (\eS (adc2N, adc2F) -> (eS & nState .~ adc2N & oscillatorStrength .~ adc2F))
           energySortedADC2States adc2StateFosc
   return correctADC2states
-  -}
   where
     compareExcState a b = (a ^. relEnergy) `compare` (b ^. relEnergy)
 
 
-mrccCIState :: Parser [ExcState]
-mrccCIState = do
-  allStates <- many1 $ do
-    _ <- manyTill anyChar (string "Final result in atomic units for root")
+mrccTable :: Parser [(Int, Double)]
+mrccTable = do
+  statePairs <- many1 $ do
     _ <- takeWhile isHorizontalSpace
-    nStateCIS <- decimal
-    _ <- char ':'
-    skipSpace
+    adc2State <- decimal
     _ <- takeWhile isHorizontalSpace
-    _ <- string "Total Hartree-Fock energy:"
+    cisState <- decimal
     _ <- takeWhile isHorizontalSpace
-    _ <- double
+    _ <- double -- x component of dipole
+    _ <- takeWhile isHorizontalSpace
+    _ <- double -- y component of dipole
+    _ <- takeWhile isHorizontalSpace
+    _ <- double -- z component of dipole
+    _ <- takeWhile isHorizontalSpace
+    _ <- double -- total dipole strength
+    _ <- takeWhile isHorizontalSpace
+    adc2Fosc <- double
+    _ <- takeWhile isHorizontalSpace
     endOfLine
-    _ <- takeWhile isHorizontalSpace
-    _ <- string "Total ADC(2) energy:"
-    _ <- takeWhile isHorizontalSpace
-    _ <- double
-    endOfLine
-    _ <- takeWhile isHorizontalSpace
-    _ <- string "ADC(2) excitation energy:"
-    _ <- takeWhile isHorizontalSpace
-    relEnergy' <- double
-    endOfLine
-    _ <- takeWhile isHorizontalSpace
-    _ <- string "Spin multiplicity:"
-    _ <- takeWhile isHorizontalSpace
-    multiplicity' <- decimal
-    skipSpace
-    _ <- string "Dominant coefficients"
-    skipSpace
-    _ <- string "Printing threshold:"
-    _ <- takeWhile isHorizontalSpace
-    _ <- double
-    skipSpace
-    _ <- string "coeff.   occ.       virt."
-    skipSpace
-    ciDeterminants' <- many1 $ do
-      _ <- takeWhile isHorizontalSpace
-      coeff' <- double
-      _ <- takeWhile isHorizontalSpace
-      fromOrbI' <- decimal
-      _ <- takeWhile isHorizontalSpace
-      _ <- string "-->"
-      _ <- takeWhile isHorizontalSpace
-      toOrbI' <- decimal
-      _ <- takeWhile isHorizontalSpace
-      endOfLine
-      return CIDeterminant
-        { _excitationPairs =
-            [ OrbitalExcitation
-                { _fromOrb = (fromOrbI', Nothing)
-                , _toOrb   = (toOrbI', Nothing)
-                }
-            ]
-        , _weight = (coeff')**2.0
-        }
-    return ExcState
-      { _nState             = nStateCIS
-      , _multiplicity       = multiplicity'
-      , _wfType             = Nothing
-      , _s2                 = Nothing
-      , _relEnergy          = relEnergy'
-      , _oscillatorStrength = 1
-      , _ciWavefunction     = V.fromList ciDeterminants'
-      , _nBasisFunctions    = 606
-      }
-  return allStates
+    return (adc2State, adc2Fosc)
+  return statePairs
 
 
 
