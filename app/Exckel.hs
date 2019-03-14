@@ -195,7 +195,8 @@ getExcitedStates a fi = do
                   let fileInfoWithSPExePath = fileInfoWithPlotRange & spectrumPlotter . spExePath .~ exe
                   logInfo $ "Plotting spectrum as Spectrum.png. See Gnuplot.out and Gnuplot.err"
                   SP.GP.plotSpectrum fileInfoWithSPExePath eSfilterByS2 eSfilterByFOsc
-                  doOrbCubes a fileInfoWithPlotRange eSfinalFilter
+                  doOrbCubes a fileInfoWithSPExePath eSfinalFilter
+
 
 -- | Routine to calculate the orbital cubes. Wraps the CubeGenerators. Jumps to next step if no
 -- | cubes are to be calculated.
