@@ -374,38 +374,6 @@ mrccADC = do
   where
     compareExcState a b = (a ^. relEnergy) `compare` (b ^. relEnergy)
 
-
-mrccTable :: Parser [(Int, Double)]
-mrccTable = do
-  statePairs <- many1 $ do
-    _ <- takeWhile isHorizontalSpace
-    adc2State <- decimal
-    _ <- takeWhile isHorizontalSpace
-    cisState <- decimal
-    _ <- takeWhile isHorizontalSpace
-    _ <- double -- x component of dipole
-    _ <- takeWhile isHorizontalSpace
-    _ <- double -- y component of dipole
-    _ <- takeWhile isHorizontalSpace
-    _ <- double -- z component of dipole
-    _ <- takeWhile isHorizontalSpace
-    _ <- double -- total dipole strength
-    _ <- takeWhile isHorizontalSpace
-    adc2Fosc <- double
-    _ <- takeWhile isHorizontalSpace
-    endOfLine
-    return (adc2State, adc2Fosc)
-  return statePairs
-
-
-
-
-
-
-
-
-
-
 -- | Parse a Gaussian cube file. Takes care of Angstrom Bohr conversion.
 cube :: Parser Cube
 cube = do
