@@ -5,6 +5,7 @@ Contains all parsers for quantum chemistry software outputs. Contains also parse
 module Exckel.Parser
 ( gaussianLogTDDFT
 , nwchemTDDFT
+, mrccADC
 , cube
 , vmdState
 , vmdRC
@@ -13,6 +14,7 @@ import           Control.Applicative
 import           Data.Array.Repa      (Array, DIM3, U, Z)
 import qualified Data.Array.Repa      as R
 import           Data.Attoparsec.Text hiding (take)
+import           Data.Sort
 import qualified Data.Text            as T
 import qualified Data.Vector          as V
 import           Exckel.ExcUtils
@@ -20,7 +22,6 @@ import           Exckel.Types
 import           Lens.Micro.Platform
 import           Prelude              hiding (takeWhile)
 import           Text.Printf
-import Data.Sort
 
 -- | From the whole Gaussian TDDFT output, parse all single excited state and skip over all other
 -- | parts
