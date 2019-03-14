@@ -24,6 +24,7 @@ extra-source-files:
     data/VMD.tcl
     data/DefaultRef.docx
     data/DefaultRef.odt
+    spectrify/spectrify.py
 
 source-repository head
   type: git
@@ -40,6 +41,8 @@ library
       Exckel.ExcUtils
       Exckel.Parser
       Exckel.SpectrumPlotter.Gnuplot
+      Exckel.SpectrumPlotter.SharedFunctions
+      Exckel.SpectrumPlotter.Spectrify
       Exckel.Types
   other-modules:
       Paths_Exckel

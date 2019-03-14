@@ -338,16 +338,20 @@ instance (Default PandocInfo) where
 
 -- | Programm for plotting spectra and parameters for it
 data SpectrumPlotter =
-  Gnuplot
-    { _spExePath    :: FilePath
-    , _spERange     :: Maybe (Double, Double)
-    , _spBroadening :: Double
-    } deriving (Eq, Show)
+    Gnuplot
+      { _spExePath    :: FilePath
+      , _spERange     :: Maybe (Double, Double)
+      , _spBroadening :: Double
+      }
+  | Spectrify
+      { _spERange     :: Maybe (Double, Double)
+      , _spBroadening :: Double
+      }
+  deriving (Eq, Show)
 makeLenses ''SpectrumPlotter
 instance (Default SpectrumPlotter) where
-  def = Gnuplot
-    { _spExePath = "gnuplot"
-    , _spERange = Nothing
+  def = Spectrify
+    { _spERange = Nothing
     , _spBroadening = 0.3
     }
 

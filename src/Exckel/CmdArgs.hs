@@ -42,6 +42,7 @@ data ExckelArgs = ExckelArgs
   , states         :: Maybe String
   , calcsoftware   :: String
   , calctype       :: String
+  , spectrum       :: String
   } deriving (Show, Data, Typeable)
 
 exckelArgs = ExckelArgs
@@ -135,6 +136,10 @@ exckelArgs = ExckelArgs
 
   , calcsoftware   =  "gaussian"
                    &= help "Calculation software, that produced the output file. [gaussian | nwchem | mrcc]"
+                   &= typ "STRING"
+
+  , spectrum       =  "spectrify"
+                   &= help "Program to plot the spectrum. [gnuplot | spectrify]"
                    &= typ "STRING"
 
   , calctype       =  "rc-adc2"
