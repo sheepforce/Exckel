@@ -250,6 +250,30 @@ nwchemTDDFT = do
       }
   return states'
 
+-- | Parse mrcc output of an ADC2 calculation
+mrccADC :: Parser [ExcState]
+mrccADC = do
+  -- Multiplicity
+  _ <- manyTill anyChar (string "Spin multiplicity:")
+  _ <- takeWhile isHorizontalSpace
+  multiplicity' <- decimal
+  -- wavefunction type
+  wfString <- manyTill anyChar (string "hf calc")
+  let wfType' = case (reverse . take 3 . reverse . T.words $ wfString) of
+    ["restriced", "closed", "shell"] -> Just ClosedShell
+    [_, _, "unrestricted"]           -> Just OpenShell
+    _                                -> Nothing
+  -- number of basis functions
+  _ <- manyTill anyChar (string "Total number of basis functions:")
+  _ <- takeWhile isHorizontalSpace
+  nBasisFunctions' <- decimal
+  -- excited states
+  states' <- many1 $ do
+    _ <- manyTill anyChar (string "Final result in atomic units for root")
+    _ <- takeWhile
+
+
+
 -- | Parse a Gaussian cube file. Takes care of Angstrom Bohr conversion.
 cube :: Parser Cube
 cube = do
