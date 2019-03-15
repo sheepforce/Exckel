@@ -15,9 +15,13 @@ main = do
   -- Read command line arguments
   args <- cmdArgs exckelArgs
   -- Initialise all fields with environment and command line argument related stuff
-  fileInfo1 <- initialise args
+  fileInfoInitial <- initialise args
   -- Parse and filter the excited states.
-  (excitedStatesSpectrum, excitedStatesAnalysis) <- getExcitedStates fileInfo1
+  (excitedStatesSpectrum, excitedStatesSpectrumLabel, excitedStatesAnalysis) <- getExcitedStates fileInfoInitial
   -- Plot the spectrum
+  plotSpectrum fileInfoInitial (excitedStatesSpectrum, excitedStatesSpectrumLabel)
+  -- Calculate orbital cubes
+  fileInfoUpdatedOrbCubes <- calcOrbCubes fileInfoInitial excitedStatesAnalysis
+
 
   putStrLn "Hey sheep"

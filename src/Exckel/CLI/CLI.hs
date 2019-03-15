@@ -2,25 +2,32 @@
 module Exckel.CLI.CLI
 ( initialise
 , getExcitedStates
+, plotSpectrum
+, calcOrbCubes
 )
 where
-import qualified Data.ByteString.Char8      as BS
-import qualified Data.ByteString.Lazy       as BL
+import           Control.Applicative
+import           Data.Attoparsec.Text
+import qualified Data.ByteString.Char8            as BS
+import qualified Data.ByteString.Lazy             as BL
 import           Data.Maybe
-import qualified Data.Text                  as T
-import qualified Data.Text.IO               as T
+import qualified Data.Text                        as T
+import qualified Data.Text.IO                     as T
 import           Exckel.CLI.SharedFunctions
 import           Exckel.CmdArgs
 import           Exckel.EmbedContents
+import           Exckel.ExcUtils
+import           Exckel.Parser                    hiding (vmdState)
+import qualified Exckel.SpectrumPlotter.Gnuplot   as SP.GP
+import qualified Exckel.SpectrumPlotter.Spectrify as SP.SP
 import           Exckel.Types
 import           Lens.Micro.Platform
 import           System.Directory
 import           System.FilePath
 import           Text.Read
-import Control.Applicative
-import Exckel.Parser hiding (vmdState)
-import Data.Attoparsec.Text
-import Exckel.ExcUtils
+import qualified Data.Vector                      as V
+import qualified Exckel.CubeGenerator.MultiWFN as CG.MWFN
+import Data.List
 
 -- | Entry point for the executable. Get command line arguments with defaults and call for check and
 -- | from within the check possibly for other routines.
@@ -217,7 +224,7 @@ initialise args = do
       ssEnergyFilter' = energyfilter args
       ssSpecificStates' = case (states args) of
         Nothing -> Nothing
-        Just s -> (readMaybe :: String -> Maybe [Int]) s
+        Just s  -> (readMaybe :: String -> Maybe [Int]) s
       ssWeightFilter' = weightfilter args
       stateSelection' = StateSelection
         { _ssHigherMultContrib         = ssHigherMultContrib'
@@ -251,8 +258,9 @@ initialise args = do
 
 
 -- | Reading the log file, parsing the excited states and filtering of excited states. Returns two
--- | lists of excited states. The first one for obtaining the spectrum, the second one for analysis.
-getExcitedStates :: FileInfo -> IO ([ExcState], [ExcState])
+-- | lists of excited states. The first one for obtaining the spectrum, the second one labeling the
+-- | spectrum and the third for analysis in the table.
+getExcitedStates :: FileInfo -> IO ([ExcState], [ExcState], [ExcState])
 getExcitedStates fi = do
   -- Header of section
   logHeader "\n----"
@@ -312,7 +320,7 @@ getExcitedStates fi = do
   -- Informations about filtering and parsing process.
   case (fi ^. stateSelection . ssSpecificStates) of
     Nothing -> return ()
-    Just s -> logMessage "States for analysis (but not plotting)" (show s)
+    Just s  -> logMessage "States for analysis (but not plotting)" (show s)
   logMessage "States in log file"                               (show $ length excitedStatesAll)
   logMessage "States removed due to <S**2> deviation"           (show $ length excitedStatesAll - length excitedStatesByS2)
   logMessage "States removed due to energy range"               (show $ length excitedStatesByS2 - length excitedStatesByEnergy)
@@ -327,4 +335,76 @@ getExcitedStates fi = do
       error "No excited states left for analysis."
     else return ()
 
-  return (excitedStatesByS2, excitedStatesFinalFilter)
+  return (excitedStatesByS2, excitedStatesByFOsc, excitedStatesFinalFilter)
+
+
+
+-- | Plotting the spectrum from excited states. Takes all excited states, that contribute to the
+-- | spectrum as first list of excited states and the excited states, that shall be used for
+-- | labeling as a second lsit of excited states.
+plotSpectrum :: FileInfo -> ([ExcState], [ExcState]) -> IO ()
+plotSpectrum fi (esAll, esLabel) = do
+  -- Header
+  logHeader "\n----"
+  logHeader "Plotting the spectrum:"
+
+  logMessage "Spectrum plotter" $ case (fi ^. spectrumPlotter) of
+    Spectrify {} -> "spectrify.py"
+    Gnuplot {}   -> show $ fi ^. spectrumPlotter ^. spExePath
+
+  -- Call the plotting software.
+  case (fi ^. spectrumPlotter) of
+    Spectrify {} -> do
+      logInfo "Plotting spectrum as \"Spectrum.png\". See \"Spectrify.out\" and \"Spectrify.err\"."
+      SP.SP.plotSpectrum fi esAll esLabel
+    Gnuplot {}   -> do
+      logInfo "Plotting spectrum as \"Spectrum.png\". See \"Gnuplot.out\" and \"Gnuplot.err\"."
+      SP.GP.plotSpectrum fi esAll esLabel
+
+
+
+-- | Calculate cubes for the orbitals. Gives back updated file infos with all orbital cubes.
+calcOrbCubes :: FileInfo -> [ExcState] -> IO FileInfo
+calcOrbCubes fi es = do
+  -- Header
+  logHeader "\n----"
+  logHeader "Orbital calculation:"
+
+  logMessage "Calculate orbital cubes" $ case (fi ^. orbGenerator) of
+    Nothing -> "no"
+    Just _  -> "yes"
+
+  -- Depending on what is going to happen with the cubes in subsequent steps, we can potentially
+  -- reduce the number of orbitals to plot, by first applying the weight filter on the CI
+  -- determinants.
+  let ciDeterminantsByWeight =
+        map (V.filter (\d -> d ^. weight >= (fi ^. stateSelection . ssWeightFilter))) $
+        map (^. ciWavefunction) es
+      excitedStatesByCIWeight =
+        zipWith (\e d -> e & ciWavefunction .~ d) es ciDeterminantsByWeight
+  excitedStatesForOrbs <- case (fi ^. cddGenerator) of
+        -- Repa will need all grid data to be present
+        Just REPA {}        -> return es
+        -- Multiwfn will calculate CDD grids by itself from scratch, so orbital numbers can be reduced
+        Just MultiWFNCDD {} -> do
+          logMessage
+            "Filtered CI determinants by minimum weight of an excitation"
+            (show $ fi ^. stateSelection . ssWeightFilter)
+          return excitedStatesByCIWeight
+        Nothing             -> return es
+  let orbitalsToPlot = nub . concat . map getOrbNumbers $ excitedStatesForOrbs
+  logMessage "Orbitals to calculate" (show orbitalsToPlot)
+
+  -- Do the calculation and update the file info with the newly found cubes after calculation.
+  cubeInfo <- case (fi ^. orbGenerator) of
+    Nothing          -> do
+      allCubes <- findAllCubes (fi ^. outputPrefix)
+      return allCubes
+    Just MultiWFNOrb {} -> do
+      logMessage "Orbital calculator"    (fi ^. orbGenerator . _Just . ogExePath)
+      logInfo "Calculating orbitals now. See \"MultiWFN.out\" and \"MultiWFN.err\"."
+      CG.MWFN.calculateOrbs fi orbitalsToPlot
+      allCubes <- findAllCubes (fi ^. outputPrefix)
+      return allCubes
+
+  return $ fi & cubeFiles . orbCubes .~ (cubeInfo ^. orbCubes)

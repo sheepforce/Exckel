@@ -383,7 +383,7 @@ instance (Default SpectrumPlotter) where
     }
 -}
 
--- |
+-- | Storing filters to remove the number of excited state for analysis.
 data StateSelection = StateSelection
   { _ssHigherMultContrib         :: Maybe Double
   , _ssMinimumOscillatorStrenght :: Maybe Double
