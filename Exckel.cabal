@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 53b9aea9033fa236806bc2c57a783488a9c43099e76009981f2b00292b7bb851
+-- hash: 05792727bdb14792abf24d71d5408c7e12e741b4f885b8adb6f72c7c7992c5a1
 
 name:           Exckel
 version:        0.2.0.0
@@ -32,6 +32,8 @@ source-repository head
 
 library
   exposed-modules:
+      Exckel.CLI.Initialise
+      Exckel.CLI.SharedFunctions
       Exckel.CmdArgs
       Exckel.CubeGenerator.Exckel
       Exckel.CubeGenerator.MultiWFN
@@ -76,6 +78,8 @@ library
 executable exckel
   main-is: Exckel.hs
   other-modules:
+      Exckel.CLI.SharedFunctions
+      ExckelNew
       Paths_Exckel
   hs-source-dirs:
       app

@@ -33,6 +33,7 @@ module Exckel.Types
 , rExePath
 , rResolution
 , rImageFormat
+, rIMExePath
 , CubePlotter(..)
 , cpExePath
 , cpStateFile
@@ -73,7 +74,6 @@ module Exckel.Types
 , outputPrefix
 , cubeFiles
 , imageFiles
-, imConvertExePath
 , pandocInfo
 , spectrumPlotter
 , selStates
@@ -192,6 +192,7 @@ data Renderer =
       { _rExePath     :: FilePath
       , _rResolution  :: (Int, Int)
       , _rImageFormat :: ImageFormat
+      , _rIMExePath   :: FilePath
       }
   deriving (Eq, Show)
 makeLenses ''Renderer
@@ -200,6 +201,7 @@ instance (Default Renderer) where
     { _rExePath = fromMaybe "tachyon" $ unsafePerformIO $ findExecutable "tachyon"
     , _rResolution = (2000,1200)
     , _rImageFormat = PNG
+    , _rIMExePath = fromMaybe "convert" . unsafePerformIO $ findExecutable "convert"
     }
 
 -- | Programm to plot a set of cube files
@@ -361,13 +363,12 @@ data FileInfo = FileInfo
   { _logFile          :: FilePath
   , _calcSoftware     :: CalcSoftware
   , _waveFunctionFile :: FilePath
-  , _orbGenerator     :: OrbGenerator
-  , _cddGenerator     :: CDDGenerator
-  , _cubePlotter      :: CubePlotter
+  , _orbGenerator     :: Maybe OrbGenerator
+  , _cddGenerator     :: Maybe CDDGenerator
+  , _cubePlotter      :: Maybe CubePlotter
   , _outputPrefix     :: FilePath
   , _cubeFiles        :: CubeFiles
   , _imageFiles       :: ImageFiles
-  , _imConvertExePath :: FilePath
   , _pandocInfo       :: PandocInfo
   , _spectrumPlotter  :: SpectrumPlotter
   , _selStates        :: Maybe [Int]
@@ -379,13 +380,12 @@ instance (Default FileInfo) where
     { _logFile = ""
     , _calcSoftware = def
     , _waveFunctionFile = ""
-    , _orbGenerator = def
-    , _cddGenerator = def
-    , _cubePlotter = def
+    , _orbGenerator = Nothing
+    , _cddGenerator = Nothing
+    , _cubePlotter = Nothing
     , _outputPrefix = "."
     , _cubeFiles = def
     , _imageFiles = def
-    , _imConvertExePath = fromMaybe "convert" $ unsafePerformIO $ findExecutable "convert"
     , _pandocInfo = def
     , _spectrumPlotter = def
     , _selStates = Nothing

@@ -29,7 +29,7 @@ data ExckelArgs = ExckelArgs
   , multiwfn       :: Maybe FilePath
   , cddcalculator  :: String
   , tachyon        :: Maybe FilePath
-  , pdFormat       :: String
+  , panFormat      :: String
   , panref         :: Maybe FilePath
   , wf             :: Maybe FilePath
   , exc            :: Maybe FilePath
@@ -90,7 +90,7 @@ exckelArgs = ExckelArgs
                    &= help "Tachyon executable. Default is first tachyon executable found on system"
                    &= typFile
 
-  , pdFormat       =  "docx"
+  , panFormat      =  "docx"
                    &= help "Format of the summary to write with Pandoc. Any of [docx | odt | latex]"
                    &= typ "STRING"
 
