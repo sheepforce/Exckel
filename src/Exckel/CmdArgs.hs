@@ -142,7 +142,7 @@ exckelArgs = ExckelArgs
                    &= help "Program to plot the spectrum. [gnuplot | spectrify]"
                    &= typ "STRING"
 
-  , calctype       =  "rc-adc2"
+  , calctype       =  "tddft"
                    &= help "Calculation type. [tddft | rc-adc2 (reduced cost ADC(2))]"
                    &= typ "STRING"
 

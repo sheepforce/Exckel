@@ -1,5 +1,7 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Exckel.CLI.CLI
 ( initialise
+, getExcitedStates
 )
 where
 import qualified Data.ByteString.Char8      as BS
@@ -15,13 +17,17 @@ import           Lens.Micro.Platform
 import           System.Directory
 import           System.FilePath
 import           Text.Read
+import Control.Applicative
+import Exckel.Parser hiding (vmdState)
+import Data.Attoparsec.Text
+import Exckel.ExcUtils
 
 -- | Entry point for the executable. Get command line arguments with defaults and call for check and
 -- | from within the check possibly for other routines.
 initialise :: ExckelArgs -> IO FileInfo
 initialise args = do
   -- Header
-  logHeader "----"
+  logHeader "\n----"
   logHeader "Intialisation:"
 
   -- Define the log file path.
@@ -61,6 +67,9 @@ initialise args = do
           , _redCost = True
           }
         "tddft"   -> TDDFT
+          { _fullTDDFT = True
+          }
+        _         -> TDDFT
           { _fullTDDFT = True
           }
       -- Get QC software for the parser
@@ -202,10 +211,21 @@ initialise args = do
         , _pdDocType = pdDocType'
         }
 
-  -- Are some states selectively specified?
-  let selStates' = case (states args) of
+  -- Command line arguments to populate potential state filtering.
+  let ssHigherMultContrib' = s2Filter args
+      ssMinimumOscillatorStrenght' = foscFilter args
+      ssEnergyFilter' = energyfilter args
+      ssSpecificStates' = case (states args) of
         Nothing -> Nothing
-        Just s  -> (readMaybe :: String -> Maybe [Int]) s
+        Just s -> (readMaybe :: String -> Maybe [Int]) s
+      ssWeightFilter' = weightfilter args
+      stateSelection' = StateSelection
+        { _ssHigherMultContrib         = ssHigherMultContrib'
+        , _ssMinimumOscillatorStrenght = ssMinimumOscillatorStrenght'
+        , _ssEnergyFilter              = ssEnergyFilter'
+        , _ssSpecificStates            = ssSpecificStates'
+        , _ssWeightFilter              = ssWeightFilter'
+        }
 
   -- The initial information about program execution and files built from gathered values
   let infitialFileInfo = FileInfo
@@ -220,10 +240,91 @@ initialise args = do
         , _cubeFiles        = cubeFiles'
         , _imageFiles       = imageFiles'
         , _pandocInfo       = pandocInfo'
-        , _selStates        = selStates'
+        , _stateSelection   = stateSelection'
         }
-  logMessage "Excited state log file"                     $ infitialFileInfo ^. logFile
-  logMessage "waveFunctionFile file"                      $ infitialFileInfo ^. waveFunctionFile
-  logMessage "QC calculation"                             $ show $ infitialFileInfo ^. calcSoftware
-  logMessage "Output directory and search path for files" $ infitialFileInfo ^. outputPrefix
+  logMessage "Excited state log file"                     (infitialFileInfo ^. logFile)
+  logMessage "waveFunctionFile file"                      (infitialFileInfo ^. waveFunctionFile)
+  logMessage "QC calculation"                             (show $ infitialFileInfo ^. calcSoftware)
+  logMessage "Output directory and search path for files" (infitialFileInfo ^. outputPrefix)
   return infitialFileInfo
+
+
+
+-- | Reading the log file, parsing the excited states and filtering of excited states. Returns two
+-- | lists of excited states. The first one for obtaining the spectrum, the second one for analysis.
+getExcitedStates :: FileInfo -> IO ([ExcState], [ExcState])
+getExcitedStates fi = do
+  -- Header of section
+  logHeader "\n----"
+  logHeader "Parsing and filtering:"
+
+  print $ fi ^. calcSoftware
+
+  -- Read and parse the log file.
+  logFile <- T.readFile (fi ^. logFile)
+  let -- Parse the spectrum
+      excitedStatesParse = case (fi ^. calcSoftware) of
+        Gaussian
+          { _calcType = TDDFT
+              { _fullTDDFT = True
+              }
+          } -> parseOnly gaussianLogTDDFT logFile
+        NWChem
+          { _calcType = TDDFT
+              { _fullTDDFT = True
+              }
+          } -> parseOnly nwchemTDDFT logFile
+        MRCC
+          { _calcType = ADC
+              { _order   = _
+              , _redCost = _
+              }
+          } -> parseOnly mrccADC logFile
+  excitedStatesAll <- case excitedStatesParse of
+    Left err        -> do
+      errMessage $ "Parsing of the log file failed with: " ++ err
+      errMessage "Parsing of log file is required."
+      error "Could not parse log file."
+    Right excStates -> return excStates
+
+  -- Filter the excited states by multiple criteria
+  let -- Filter by maximum contribution of the next higher multiplicity in an open shell calculation.
+      excitedStatesByS2 = case (fi ^. stateSelection . ssHigherMultContrib) of
+        Nothing   -> excitedStatesAll
+        Just maxC -> filterByS2 maxC excitedStatesAll
+      -- Filter remaining states by fitting within an energy window.
+      excitedStatesByEnergy = case (fi ^. stateSelection . ssEnergyFilter) of
+        Nothing           -> excitedStatesByS2
+        Just (eMin, eMax) -> filter
+          (\x -> (hartree2eV $ x ^. relEnergy) >= eMin && (hartree2eV $ x ^. relEnergy) <= eMax)
+          excitedStatesByS2
+      -- Filter remaining states by minimum oscillator strength
+      excitedStatesByFOsc = case (fi ^. stateSelection . ssMinimumOscillatorStrenght) of
+        Nothing      -> excitedStatesByEnergy
+        Just minFOsc -> filter (\x -> (x ^. oscillatorStrength) >= minFOsc) excitedStatesByEnergy
+      -- If the user has specified to keep only selected states, regardless of what else has been
+      -- specified, keep only these states for Cube plotting and so on. If not user specified states
+      -- are selected, use the chain of filters resulting in excitedStatesByFOsc.
+      excitedStatesFinalFilter = case (fi ^. stateSelection . ssSpecificStates) of
+        Nothing -> excitedStatesByFOsc
+        Just sStates -> filter (\x -> (x ^. nState) `elem` sStates) excitedStatesAll
+
+  -- Informations about filtering and parsing process.
+  case (fi ^. stateSelection . ssSpecificStates) of
+    Nothing -> return ()
+    Just s -> logMessage "States for analysis (but not plotting)" (show s)
+  logMessage "States in log file"                               (show $ length excitedStatesAll)
+  logMessage "States removed due to <S**2> deviation"           (show $ length excitedStatesAll - length excitedStatesByS2)
+  logMessage "States removed due to energy range"               (show $ length excitedStatesByS2 - length excitedStatesByEnergy)
+  logMessage "States removed due to oscillator strength cutoff" (show $ length excitedStatesByEnergy - length excitedStatesByFOsc)
+  logMessage "Remaining states for plotting the spectrum"       (show . map (^. nState) $ excitedStatesByS2)
+  logMessage "Remaining states for analysis"                    (show . map (^. nState) $ excitedStatesFinalFilter)
+
+  -- Check if anything remains after filtering
+  if (length excitedStatesFinalFilter <= 0)
+    then do
+      errMessage "No excited states left to process. Will exit here"
+      error "No excited states left for analysis."
+    else return ()
+
+  return (excitedStatesByS2, excitedStatesFinalFilter)

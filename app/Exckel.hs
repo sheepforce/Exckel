@@ -16,5 +16,8 @@ main = do
   args <- cmdArgs exckelArgs
   -- Initialise all fields with environment and command line argument related stuff
   fileInfo1 <- initialise args
-  --
-  print fileInfo1
+  -- Parse and filter the excited states.
+  (excitedStatesSpectrum, excitedStatesAnalysis) <- getExcitedStates fileInfo1
+  -- Plot the spectrum
+
+  putStrLn "Hey sheep"
