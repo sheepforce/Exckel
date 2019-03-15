@@ -14,23 +14,28 @@ import System.FilePath
 import System.Directory
 import Exckel.Types
 import Data.Char
+import qualified Data.Text as T
 
 -- | Put an information to the screen, which displays a value
-logMessage f s = printf "  %-70s : %-30s\n" f s
+logMessage :: String -> String -> IO ()
+logMessage f s = hPrintf stdout "  %-70s : %-30s\n" f s
 
 -- | Mark start of a section separately
+logHeader :: String -> IO ()
 logHeader h = do
   setSGR [SetColor Foreground Vivid Green]
   hPutStrLn stdout h
   setSGR [Reset]
 
 -- | Tell something regarding progress of the program, which needs no value given.
+logInfo :: String -> IO ()
 logInfo i = do
   setSGR [SetColor Foreground Vivid Blue]
   hPutStrLn stdout i
   setSGR [Reset]
 
 -- | Error messages highlighted in red.
+errMessage :: String -> IO ()
 errMessage x = do
   setSGR [SetColor Foreground Vivid Red]
   hPutStrLn stdout x

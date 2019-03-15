@@ -2,18 +2,19 @@ module Exckel.CLI.CLI
 ( initialise
 )
 where
-import Exckel.Types
-import Exckel.CmdArgs
-import Exckel.CLI.SharedFunctions
-import System.Directory
-import System.FilePath
-import qualified Data.ByteString.Char8 as BS
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
-import qualified Data.ByteString.Lazy as BL
-import Exckel.EmbedContents
-import Data.Maybe
-import Text.Read
+import qualified Data.ByteString.Char8      as BS
+import qualified Data.ByteString.Lazy       as BL
+import           Data.Maybe
+import qualified Data.Text                  as T
+import qualified Data.Text.IO               as T
+import           Exckel.CLI.SharedFunctions
+import           Exckel.CmdArgs
+import           Exckel.EmbedContents
+import           Exckel.Types
+import           Lens.Micro.Platform
+import           System.Directory
+import           System.FilePath
+import           Text.Read
 
 -- | Entry point for the executable. Get command line arguments with defaults and call for check and
 -- | from within the check possibly for other routines.
@@ -221,4 +222,8 @@ initialise args = do
         , _pandocInfo       = pandocInfo'
         , _selStates        = selStates'
         }
+  logMessage "Excited state log file"                     $ infitialFileInfo ^. logFile
+  logMessage "waveFunctionFile file"                      $ infitialFileInfo ^. waveFunctionFile
+  logMessage "QC calculation"                             $ show $ infitialFileInfo ^. calcSoftware
+  logMessage "Output directory and search path for files" $ infitialFileInfo ^. outputPrefix
   return infitialFileInfo

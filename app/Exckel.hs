@@ -1,10 +1,10 @@
-import Exckel.Types
-import Exckel.CLI.CLI
-import qualified Data.ByteString.Char8 as BS
+import qualified Data.ByteString.Char8  as BS
+import           Exckel.CLI.CLI
+import           Exckel.CmdArgs
+import           Exckel.EmbedContents
+import           Exckel.Types
 import           System.Console.ANSI
-import           System.Console.CmdArgs           hiding (def)
-import Exckel.EmbedContents
-import Exckel.CmdArgs
+import           System.Console.CmdArgs hiding (def)
 
 main :: IO ()
 main = do
