@@ -1,4 +1,4 @@
-module Exckel.CLI.Initialise
+module Exckel.CLI.CLI
 ( initialise
 )
 where
@@ -11,6 +11,9 @@ import qualified Data.ByteString.Char8 as BS
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.ByteString.Lazy as BL
+import Exckel.EmbedContents
+import Data.Maybe
+import Text.Read
 
 -- | Entry point for the executable. Get command line arguments with defaults and call for check and
 -- | from within the check possibly for other routines.
@@ -29,7 +32,7 @@ initialise args = do
       hasLogFile <- doesFileExist logFilePathRel
       if hasLogFile
         then do
-          logFilePathAbs <- makeAbsolute logFilePath
+          logFilePathAbs <- makeAbsolute logFilePathRel
           return logFilePathAbs
         else do
           errMessage "Log file not found."
@@ -47,10 +50,11 @@ initialise args = do
           waveFunctionFilePathAbs <- makeAbsolute waveFunctionFilePathRel
           return waveFunctionFilePathAbs
         else do
-          errMessage "Wavefunction file not found."
+          errMessage "Wavefunction file not found, but wavefunction file is necessary."
+          error "Wavefunction file not found."
 
-      -- Get the type of the calculation for the parser
-      calcType' = case (calctype args) of
+  -- Get the type of the calculation for the parser
+  let calcType' = case (calctype args) of
         "rc-adc2" -> ADC
           { _order = 2
           , _redCost = True
@@ -61,16 +65,16 @@ initialise args = do
       -- Get QC software for the parser
       calcSoftware' = case (calcsoftware args) of
         "gaussian" -> Gaussian
-          { _calcType = calculationType
+          { _calcType = calcType'
           }
         "nwchem"   -> NWChem
-          { _calcType = calculationType
+          { _calcType = calcType'
           }
         "mrcc"     -> MRCC
-          { _calcType = calculationType
+          { _calcType = calcType'
           }
         _          -> Gaussian
-          { _calcType = calculationType
+          { _calcType = calcType'
           }
 
   -- Definition and setup of outputPrefix
@@ -85,7 +89,7 @@ initialise args = do
   let -- The energy window (if defined) for the plotting program
       spERange' = energyfilter args
       -- The gaussian FWHM for spectrum plotting
-      spBroadening' = fwhm args
+      spBroadening' = fromMaybe 0.3 $ fwhm args
   spectrumPlotter' <- case (spectrum args) of
     "gnuplot"   -> do
       gnuplotExe <- findExecutable "gnuplot"
@@ -110,32 +114,32 @@ initialise args = do
   -- Define the cube calculation program for orbitals
   orbGenerator' <- if (nocalcorbs args)
     then return Nothing
-    else case (multiwfn a) of
+    else case (multiwfn args) of
       Nothing  -> do
         errMessage "Requested Multiwfn to calculate orbital cubes, but Multiwfn executable has not been found."
         errMessage "Will skip orbital calculation."
         return Nothing
-      Just exe -> return Just MultiWFNOrb
+      Just exe -> return $ Just MultiWFNOrb
           { _ogExePath = exe
           }
 
   -- Define the CDD calculation program
   cddGenerator' <- if (nocalccdds args)
     then return Nothing
-    else case (cddcalculator a) of
-      "repa"     -> return REPA
-      "multiwfn" -> case (multiwfn a) of
+    else case (cddcalculator args) of
+      "repa"     -> return $ Just REPA
+      "multiwfn" -> case (multiwfn args) of
           Nothing  -> do
             errMessage "Requested Multiwfn to calculate CDD cubes, but Multiwfn executable has not been found."
             errMessage "Will skip CDD calculation."
             return Nothing
-          Just exe -> return Just MultiWFNCDD
+          Just exe -> return $ Just MultiWFNCDD
             { _cddExePath = exe
             }
   -- Define the program to plot and render the cube files
   imageMagickConvert <- findExecutable "convert"
   cpTemplate' <- case (vmdTemplate args) of
-    Nothing       -> return $ T.pack . B.unpack $ vmdTemplateScript
+    Nothing       -> return $ T.pack . BS.unpack $ vmdTemplateScript
     Just templatePath -> do
       template <- T.readFile templatePath
       return template
@@ -156,7 +160,7 @@ initialise args = do
           errMessage "Will skip cube rendering."
           return Nothing
         (Just vmdExe, Just tachyonExe, Just rIMExePath) -> do
-          return Just VMD
+          return $ Just VMD
             { _cpExePath   = vmdExe
             , _cpStateFile = vmdState args
             , _cpTemplate  = cpTemplate'
@@ -176,31 +180,31 @@ initialise args = do
   imageFiles' <- findAllImages outputPrefix'
 
   -- Setup the Pandoc informations
-  pdDocType' = case (panFormat args) of
-    "docx"  -> DOCX
-    "odt"   -> ODT
-    "latex" -> LATEX
-    _       -> DOCX
+  let pdDocType' = case (panFormat args) of
+        "docx"  -> DOCX
+        "odt"   -> ODT
+        "latex" -> LATEX
+        _       -> DOCX
   pdRefDoc' <- case (panref args) of
     Nothing -> do
       let panrefFile = outputPrefix' ++ [pathSeparator] ++ "panref.tmp"
       case pdDocType' of
         DOCX -> do
           BS.writeFile panrefFile defaultDocx
-          return Just panrefFile
+          return $ Just panrefFile
         ODT  -> do
           BS.writeFile panrefFile defaultODT
-          return Just panrefFile
+          return $ Just panrefFile
         _    -> return Nothing
-  pandocInfo' = PandocInfo
-    { pdRefDoc  = pdRefDoc'
-    , pdDocType = pdDocType'
-    }
+  let pandocInfo' = PandocInfo
+        { _pdRefDoc  = pdRefDoc'
+        , _pdDocType = pdDocType'
+        }
 
   -- Are some states selectively specified?
-  selStates' = case (states args) of
-    Nothing -> Nothing
-    Just s  -> (readMaybe :: String -> Maybe [Int]) s
+  let selStates' = case (states args) of
+        Nothing -> Nothing
+        Just s  -> (readMaybe :: String -> Maybe [Int]) s
 
   -- The initial information about program execution and files built from gathered values
   let infitialFileInfo = FileInfo

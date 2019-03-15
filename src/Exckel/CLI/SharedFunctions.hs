@@ -4,6 +4,7 @@ module Exckel.CLI.SharedFunctions
 , logInfo
 , errMessage
 , findAllCubes
+, findAllImages
 ) where
 import           System.Console.ANSI
 import           System.Console.CmdArgs hiding (def)
@@ -12,6 +13,7 @@ import           Text.Printf
 import System.FilePath
 import System.Directory
 import Exckel.Types
+import Data.Char
 
 -- | Put an information to the screen, which displays a value
 logMessage f s = printf "  %-70s : %-30s\n" f s
@@ -39,8 +41,8 @@ findAllCubes :: FilePath -> IO CubeFiles
 findAllCubes searchPath = do
   searchPathAbs <- makeAbsolute searchPath
   dirContents <- listDirectory searchPathAbs
-  let allCubesRel = filter (\x -> (takeExtension x) == ".cube") $ outDirContents
-  allCubesAbs <- mapM makeAbsolute $ map (searchPathAbs ++ [pathSeparator] ++) allCubes
+  let allCubesRel = filter (\x -> (takeExtension x) == ".cube") $ dirContents
+  allCubesAbs <- mapM makeAbsolute $ map ((searchPathAbs ++ [pathSeparator]) ++) allCubesRel
   let orbCubesFiles = filter (\x -> (take 3 . takeBaseName $ x) == "orb") allCubesAbs
       cddCubesFiles = filter (\x -> (take 3 . takeBaseName $ x) == "CDD") allCubesAbs
       electronCubesFiles = filter (\x -> (take 8 . takeBaseName $ x) == "electron") allCubesAbs
@@ -58,7 +60,7 @@ findAllImages searchPath = do
   searchPathAbs <- makeAbsolute searchPath
   dirContents <- listDirectory searchPathAbs
   allImageFiles <- mapM makeAbsolute $
-    map (searchPathAbs ++ [pathSeparator] ++) .
+    map ((searchPathAbs ++ [pathSeparator]) ++) .
     filter
       (\x -> (takeExtension x) == "." ++ (map toLower . show $ PNG) ||
              (takeExtension x) == "." ++ (map toLower . show $ JPG)

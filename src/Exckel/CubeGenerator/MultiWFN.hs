@@ -71,7 +71,10 @@ calculateOrbs fi orbInds = do
 
   zipWithM_ renameFile oldCubeNames newCubeNames
   where
-    mwfnPath = fi ^. orbGenerator . ogExePath
+    orbGeneratorMWFN = case (fi ^. orbGenerator) of
+      Nothing -> error "You requested Multiwfn calls but MultiWFN has not been found. This should not happen."
+      Just og -> og
+    mwfnPath = orbGeneratorMWFN ^. ogExePath
     mwfnWFN = fi ^. waveFunctionFile
     mwfnOutDir = fi ^. outputPrefix
     printOrbList :: [Int] -> String
@@ -136,7 +139,10 @@ calculateCDDs fi esN = do
     renameFile oldHoleName (newHoleName n)
         ) esN
   where
-    mwfnPath = fi ^. cddGenerator . cddExePath
+    cddGeneratorMWFN = case (fi ^. cddGenerator) of
+      Nothing -> error "You requested Multiwfn calls but MultiWFN has not been found. This should not happen."
+      Just cg -> cg
+    mwfnPath = cddGeneratorMWFN ^. cddExePath
     mwfnWFN = fi ^. waveFunctionFile
     mwfnLog = fi ^. logFile
     mwfnOutDir = fi ^. outputPrefix

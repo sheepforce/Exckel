@@ -119,7 +119,7 @@ exckelArgs = ExckelArgs
                    &= typ "FLOAT"
 
   , fwhm           =  Nothing
-                   &= help "Full width at half maximum of the gaussian function used to convolute the stick spectrum."
+                   &= help "Full width at half maximum of the gaussian function used to convolute the stick spectrum in electron volt."
                    &= typ "FLOAT"
 
   , weightfilter   =  0.01
