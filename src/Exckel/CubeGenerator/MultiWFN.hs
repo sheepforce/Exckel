@@ -8,7 +8,6 @@ module Exckel.CubeGenerator.MultiWFN
 ) where
 import           Control.Monad
 import           Data.List.Split
-import           Data.Maybe
 import           Exckel.Types
 import           Lens.Micro.Platform
 import           System.Directory
@@ -144,7 +143,6 @@ calculateCDDs fi esN = do
       Just cg -> cg
     mwfnPath = cddGeneratorMWFN ^. cddExePath
     mwfnWFN = fi ^. waveFunctionFile
-    mwfnLog = fi ^. logFile
     mwfnOutDir = fi ^. outputPrefix
     oldCDDName = mwfnOutDir ++ [pathSeparator] ++ "CDD.cub"
     newCDDName n = mwfnOutDir ++ [pathSeparator] ++ "CDD" ++ show n ++ ".cube"

@@ -7,10 +7,8 @@ module Exckel.CLI.SharedFunctions
 , findAllImages
 ) where
 import           Data.Char
-import qualified Data.Text              as T
 import           Exckel.Types
 import           System.Console.ANSI
-import           System.Console.CmdArgs hiding (def)
 import           System.Directory
 import           System.FilePath
 import           System.IO

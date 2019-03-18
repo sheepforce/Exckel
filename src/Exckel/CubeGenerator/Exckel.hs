@@ -2,9 +2,8 @@ module Exckel.CubeGenerator.Exckel
 ( writeCube
 , calculateCDD
 ) where
-import           Data.Array.Repa           ((:.), Array, DIM3, U)
+import           Data.Array.Repa           (DIM3)
 import qualified Data.Array.Repa           as R
-import qualified Data.Array.Repa.Eval      as R
 import           Data.Attoparsec.Text.Lazy
 import           Data.Either               hiding (fromRight)
 import           Data.List
@@ -17,13 +16,13 @@ import           Exckel.ExcUtils
 import           Exckel.Parser
 import           Exckel.Types
 import           Lens.Micro.Platform
-import           System.Directory
 import           System.FilePath
 import           Text.Printf
 import           Text.Read
 
 fromRight :: Either a b -> b
 fromRight (Right x) = x
+fromRight (Left _)  = error "Took from Left."
 
 -- | Write a Gaussian cube file. Everything in Bohr.
 writeCube :: Cube -> T.Text

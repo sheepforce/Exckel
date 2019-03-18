@@ -6,15 +6,16 @@ module Exckel.CLI.CLI
 , calcOrbCubes
 )
 where
-import           Control.Applicative
 import           Data.Attoparsec.Text
 import qualified Data.ByteString.Char8            as BS
-import qualified Data.ByteString.Lazy             as BL
+import           Data.List
 import           Data.Maybe
 import qualified Data.Text                        as T
 import qualified Data.Text.IO                     as T
+import qualified Data.Vector                      as V
 import           Exckel.CLI.SharedFunctions
 import           Exckel.CmdArgs
+import qualified Exckel.CubeGenerator.MultiWFN    as CG.MWFN
 import           Exckel.EmbedContents
 import           Exckel.ExcUtils
 import           Exckel.Parser                    hiding (vmdState)
@@ -25,9 +26,6 @@ import           Lens.Micro.Platform
 import           System.Directory
 import           System.FilePath
 import           Text.Read
-import qualified Data.Vector                      as V
-import qualified Exckel.CubeGenerator.MultiWFN as CG.MWFN
-import Data.List
 
 -- | Entry point for the executable. Get command line arguments with defaults and call for check and
 -- | from within the check possibly for other routines.
@@ -153,6 +151,7 @@ initialise args = do
           Just exe -> return $ Just MultiWFNCDD
             { _cddExePath = exe
             }
+      _          -> return $ Just REPA
   -- Define the program to plot and render the cube files
   imageMagickConvert <- findExecutable "convert"
   cpTemplate' <- case (vmdTemplate args) of
@@ -176,7 +175,7 @@ initialise args = do
           errMessage "Tachyon nees ImageMagick's convert, but it could not be found."
           errMessage "Will skip cube rendering."
           return Nothing
-        (Just vmdExe, Just tachyonExe, Just rIMExePath) -> do
+        (Just vmdExe, Just tachyonExe, Just convertExe) -> do
           return $ Just VMD
             { _cpExePath   = vmdExe
             , _cpStateFile = vmdState args
@@ -185,7 +184,7 @@ initialise args = do
                 { _rExePath     = tachyonExe
                 , _rResolution  = imgres args
                 , _rImageFormat = PNG
-                , _rIMExePath   = rIMExePath
+                , _rIMExePath   = convertExe
                 }
             , _cpStartUp   = vmdStartUp args
             }
@@ -203,7 +202,7 @@ initialise args = do
         "latex" -> LATEX
         _       -> DOCX
   pdRefDoc' <- case (panref args) of
-    Nothing -> do
+    Nothing  -> do
       let panrefFile = outputPrefix' ++ [pathSeparator] ++ "panref.tmp"
       case pdDocType' of
         DOCX -> do
@@ -213,6 +212,9 @@ initialise args = do
           BS.writeFile panrefFile defaultODT
           return $ Just panrefFile
         _    -> return Nothing
+    Just ref -> do
+      absRefDoc <- makeAbsolute ref
+      return $ Just absRefDoc
   let pandocInfo' = PandocInfo
         { _pdRefDoc  = pdRefDoc'
         , _pdDocType = pdDocType'
@@ -269,25 +271,26 @@ getExcitedStates fi = do
   print $ fi ^. calcSoftware
 
   -- Read and parse the log file.
-  logFile <- T.readFile (fi ^. logFile)
+  logFile' <- T.readFile (fi ^. logFile)
   let -- Parse the spectrum
       excitedStatesParse = case (fi ^. calcSoftware) of
         Gaussian
           { _calcType = TDDFT
               { _fullTDDFT = True
               }
-          } -> parseOnly gaussianLogTDDFT logFile
+          } -> parseOnly gaussianLogTDDFT logFile'
         NWChem
           { _calcType = TDDFT
               { _fullTDDFT = True
               }
-          } -> parseOnly nwchemTDDFT logFile
+          } -> parseOnly nwchemTDDFT logFile'
         MRCC
           { _calcType = ADC
               { _order   = _
               , _redCost = _
               }
-          } -> parseOnly mrccADC logFile
+          } -> parseOnly mrccADC logFile'
+        _   -> parseOnly gaussianLogTDDFT logFile'
   excitedStatesAll <- case excitedStatesParse of
     Left err        -> do
       errMessage $ "Parsing of the log file failed with: " ++ err

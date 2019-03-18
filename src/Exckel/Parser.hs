@@ -11,7 +11,7 @@ module Exckel.Parser
 , vmdRC
 ) where
 import           Control.Applicative
-import           Data.Array.Repa      (Array, DIM3, U, Z)
+--import           Data.Array.Repa      (Array, DIM3, U, Z)
 import qualified Data.Array.Repa      as R
 import           Data.Attoparsec.Text hiding (take)
 import           Data.Sort
@@ -21,7 +21,6 @@ import           Exckel.ExcUtils
 import           Exckel.Types
 import           Lens.Micro.Platform
 import           Prelude              hiding (takeWhile)
-import           Text.Printf
 
 -- | From the whole Gaussian TDDFT output, parse all single excited state and skip over all other
 -- | parts
@@ -108,6 +107,7 @@ gaussianLogTDDFT = do
                     , _toOrb = (fromOrbI', spinFrom')
                     }
                 ]
+              _    -> error "Couldn't pattern match excitation direction."
         , _weight = (coeff')**2.0
         }
     _ <- option "" $ do
@@ -269,7 +269,6 @@ mrccADC = do
   _ <- manyTill anyChar (string "Total number of basis functions:")
   _ <- takeWhile isHorizontalSpace
   nBasisFunctions' <- decimal
-  return $ T.pack . show $ nBasisFunctions'
   -- excited states
   cisOrderedStates <- many1 $ do
     {-

@@ -6,8 +6,7 @@ orbital counting starts from 1, no matter which program is being used.
 -}
 {-# LANGUAGE TemplateHaskell #-}
 module Exckel.Types
-( Default(..)
-, Spin(..)
+( Spin(..)
 , OrbitalExcitation(..)
 , fromOrb
 , toOrb
@@ -96,20 +95,11 @@ module Exckel.Types
 , atomicNumber
 , coordinate
 ) where
-import           Data.Array.Repa       ((:.), Array, DIM3, U)
-import qualified Data.Array.Repa       as R
-import qualified Data.ByteString.Char8 as B
-import           Data.Maybe
-import qualified Data.Text             as T
-import           Data.Vector           hiding ((++))
-import           Exckel.EmbedContents
+import           Data.Array.Repa     (Array, DIM3, U)
+import qualified Data.Text           as T
+import           Data.Vector         hiding ((++))
 import           Lens.Micro.Platform
-import           System.Directory
-import           System.IO
-import           System.IO.Unsafe
 
-class (Default a) where
-  def :: a
 
 ----------------------------------------------------------------------------------------------------
 -- Wavefunction data types

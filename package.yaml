@@ -52,6 +52,11 @@ library:
     - OverloadedStrings
   ghc-options:
     - -optP-Wno-nonportable-include-path
+    - -O2
+    - -Wall
+    - -Wno-unused-top-binds
+    - -Wno-unused-local-binds
+    - -Wno-type-defaults
     # - -static
     # - -fPIC
     # - -optl-static
@@ -67,6 +72,11 @@ executables:
       - -rtsopts
       - -with-rtsopts=-N
       - -optP-Wno-nonportable-include-path
+      - -O2
+      - -Wall
+      - -Wno-unused-top-binds
+      - -Wno-unused-local-binds
+      - -Wno-type-defaults
       # - -static
       # - -fPIC
       # - -optl-static

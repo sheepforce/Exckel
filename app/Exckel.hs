@@ -13,9 +13,9 @@ main = do
   putStrLn . BS.unpack $ exckelLogo
   setSGR [Reset]
   -- Read command line arguments
-  args <- cmdArgs exckelArgs
+  arguments <- cmdArgs exckelArgs
   -- Initialise all fields with environment and command line argument related stuff
-  fileInfoInitial <- initialise args
+  fileInfoInitial <- initialise arguments
   -- Parse and filter the excited states.
   (excitedStatesSpectrum, excitedStatesSpectrumLabel, excitedStatesAnalysis) <- getExcitedStates fileInfoInitial
   -- Plot the spectrum

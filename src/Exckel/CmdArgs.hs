@@ -11,10 +11,8 @@ module Exckel.CmdArgs
 , exckelArgs
 )
 where
-import           Paths_Exckel
 import           System.Console.CmdArgs
 import           System.Directory
-import           System.IO
 import           System.IO.Unsafe
 
 data ExckelArgs = ExckelArgs
@@ -45,6 +43,7 @@ data ExckelArgs = ExckelArgs
   , spectrum       :: String
   } deriving (Show, Data, Typeable)
 
+exckelArgs :: ExckelArgs
 exckelArgs = ExckelArgs
   { nocalcorbs      =  False
                    &= help "Do not calculate cubes for orbitals."

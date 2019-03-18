@@ -12,11 +12,9 @@ import           Exckel.ExcUtils
 import           Exckel.SpectrumPlotter.SharedFunctions
 import           Exckel.Types
 import           Lens.Micro.Platform
-import           System.Directory
 import           System.FilePath
 import           System.IO
 import           System.Process
-import           Text.Printf
 
 -- | Plots the spectrum to a png file. Uses the informations about excited states. It takes
 -- |   - fi -> the FileInfo data type for paths

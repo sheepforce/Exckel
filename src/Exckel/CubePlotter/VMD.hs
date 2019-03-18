@@ -9,11 +9,9 @@ render the images.
 module Exckel.CubePlotter.VMD
 ( plotCubes
 ) where
-import           Control.Applicative
 import           Control.Monad.Identity
 import           Data.Attoparsec.Text
 import qualified Data.HashMap.Lazy      as H
-import           Data.List              hiding (length)
 import           Data.Maybe
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as T
@@ -84,7 +82,7 @@ plotCubes fi = do
   hClose vmdLogFile
   hClose vmdErrFile
 
-  exitCode <- waitForProcess vmdProcH
+  exitCodeVMD <- waitForProcess vmdProcH
   cleanupProcess (Just vmdInput, Just vmdOutput, Just vmdError, vmdProcH)
 
   -- call renderer if specified
@@ -112,14 +110,14 @@ plotCubes fi = do
         tacErr <- hGetContents tacError
         writeFile (vmdOutDir ++ [pathSeparator] ++ "Tachyon.out") tacLog
         writeFile (vmdOutDir ++ [pathSeparator] ++ "Tachyon.err") tacErr
-        exitCode <- waitForProcess tacProcH
+        exitCodeTachyon <- waitForProcess tacProcH
         cleanupProcess (Just tacInput, Just tacOutput, Just tacError, tacProcH)
 
         -- after tachyon has finished, trim with imagemagick's convert
         (Nothing, Nothing, Nothing, convertProcH) <- createProcess
           (proc (cubePlotterVMD ^. cpRenderer . rIMExePath) [ri, "-trim", imi])
           {cwd = Just vmdOutDir}
-        exitCode <- waitForProcess convertProcH
+        exitCodeConvert <- waitForProcess convertProcH
         cleanupProcess (Nothing, Nothing, Nothing, convertProcH)
 
         -- delete tachyon images with borders
