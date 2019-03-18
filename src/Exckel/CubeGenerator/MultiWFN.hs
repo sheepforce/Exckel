@@ -65,7 +65,7 @@ calculateOrbs fi orbInds = do
   hClose mwfnLogFile
   hClose mwfnErrFile
 
-  exitCode <- waitForProcess mwfnProcH
+  _ <- waitForProcess mwfnProcH
   cleanupProcess (Just mwfnInput, Just mwfnOutput, Just mwfnError, mwfnProcH)
 
   zipWithM_ renameFile oldCubeNames newCubeNames
@@ -130,7 +130,7 @@ calculateCDDs fi esN = do
     hClose mwfnLogFile
     hClose mwfnErrFile
 
-    exitCode <- waitForProcess mwfnProcH
+    _ <- waitForProcess mwfnProcH
     cleanupProcess (Just mwfnInput, Just mwfnOutput, Just mwfnError, mwfnProcH)
 
     renameFile oldCDDName (newCDDName n)

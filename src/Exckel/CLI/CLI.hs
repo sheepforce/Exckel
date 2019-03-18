@@ -4,6 +4,7 @@ module Exckel.CLI.CLI
 , getExcitedStates
 , plotSpectrum
 , calcOrbCubes
+, calcCDDCubes
 )
 where
 import           Data.Attoparsec.Text
@@ -15,6 +16,7 @@ import qualified Data.Text.IO                     as T
 import qualified Data.Vector                      as V
 import           Exckel.CLI.SharedFunctions
 import           Exckel.CmdArgs
+import qualified Exckel.CubeGenerator.Exckel      as CG.Exckel
 import qualified Exckel.CubeGenerator.MultiWFN    as CG.MWFN
 import           Exckel.EmbedContents
 import           Exckel.ExcUtils
@@ -401,8 +403,7 @@ calcOrbCubes fi es = do
   -- Do the calculation and update the file info with the newly found cubes after calculation.
   cubeInfo <- case (fi ^. orbGenerator) of
     Nothing          -> do
-      allCubes <- findAllCubes (fi ^. outputPrefix)
-      return allCubes
+      return $ fi ^. cubeFiles
     Just MultiWFNOrb {} -> do
       logMessage "Orbital calculator"    (fi ^. orbGenerator . _Just . ogExePath)
       logInfo "Calculating orbitals now. See \"MultiWFN.out\" and \"MultiWFN.err\"."
@@ -411,3 +412,54 @@ calcOrbCubes fi es = do
       return allCubes
 
   return $ fi & cubeFiles . orbCubes .~ (cubeInfo ^. orbCubes)
+
+
+
+-- | Calculate the CDD cubes (including electrons and holes). Gives back updated file infos with all
+-- | cdd cubes.
+calcCDDCubes :: FileInfo -> [ExcState] -> IO FileInfo
+calcCDDCubes fi es = do
+  -- Header
+  logHeader "\n----"
+  logHeader "Charge density difference calcultion:"
+
+  logMessage "Calculate CDD cubes" $ case (fi ^. cddGenerator) of
+    Nothing -> "no"
+    Just _  -> "yes"
+
+  cubeInfo <- case (fi ^. cddGenerator) of
+    Just REPA {}        -> do
+      logMessage "CDD calculator" "REgular Parallel Arrays (neglecting all cross terms!)"
+      logMessage "Calculating CDDs for states" (show $ map (^. nState) es)
+      logMessage "Orbital cubes available" (show $ map takeFileName <$> (fi ^. cubeFiles . orbCubes))
+      logInfo "Calculating CDDs in parallel using REPA. See \"REPA.log\""
+      mapM_ (\s -> do
+        cddTriple <- CG.Exckel.calculateCDD fi s
+        case cddTriple of
+          Left e               -> errMessage e
+          Right (i, (h, e, d)) -> do
+            T.writeFile
+              ((fi ^. outputPrefix) ++ [pathSeparator] ++ "hole" ++ show i ++ ".cube")
+              (CG.Exckel.writeCube h)
+            T.writeFile
+              ((fi ^. outputPrefix) ++ [pathSeparator] ++ "electron" ++ show i ++ ".cube")
+              (CG.Exckel.writeCube e)
+            T.writeFile
+              ((fi ^. outputPrefix) ++ [pathSeparator] ++ "CDD" ++ show i ++ ".cube")
+              (CG.Exckel.writeCube d)
+        ) es
+      allCubes <- findAllCubes (fi ^. outputPrefix)
+      return allCubes
+    Just MultiWFNCDD {} -> do
+      logMessage "CDD calculator" (show $ fi ^. cddGenerator . _Just . cddExePath)
+      logMessage "Calculating CDDs for states" (show $ map (^. nState) es)
+      logInfo "Calculating CDDs. See \"MultiWFN.out\" and \"MultiWFN.err\""
+      CG.MWFN.calculateCDDs fi (map (^. nState) es)
+      allCubes <- findAllCubes (fi ^. outputPrefix)
+      return allCubes
+    Nothing             -> return $ fi ^. cubeFiles
+
+  return $ fi
+    & cubeFiles . holeCubes     .~ (cubeInfo ^. holeCubes)
+    & cubeFiles . electronCubes .~ (cubeInfo ^. electronCubes)
+    & cubeFiles . cddCubes      .~ (cubeInfo ^. cddCubes)

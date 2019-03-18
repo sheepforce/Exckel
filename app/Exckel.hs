@@ -22,6 +22,8 @@ main = do
   plotSpectrum fileInfoInitial (excitedStatesSpectrum, excitedStatesSpectrumLabel)
   -- Calculate orbital cubes
   fileInfoUpdatedOrbCubes <- calcOrbCubes fileInfoInitial excitedStatesAnalysis
+  -- Calculate CDD cubes
+  fileInfoUpdatedCDDCubes <- calcCDDCubes fileInfoUpdatedOrbCubes excitedStatesAnalysis
 
 
   putStrLn "Hey sheep"
