@@ -41,6 +41,7 @@ data ExckelArgs = ExckelArgs
   , energyfilter   :: Maybe (Double, Double)
   , states         :: Maybe String
   , calcsoftware   :: String
+  , spectrum       :: String
   } deriving (Show, Data, Typeable)
 
 exckelArgs = ExckelArgs
@@ -134,6 +135,10 @@ exckelArgs = ExckelArgs
 
   , calcsoftware   =  "gaussian"
                    &= help "Calculation software, that produced the output file. [gaussian | nwchem]"
+                   &= typ "STRING"
+
+  , spectrum       =  "spectrify"
+                   &= help "Program to plot the spectrum. [gnuplot | spectrify]"
                    &= typ "STRING"
   } &= summary "The Exckel automatic summary programm"
     &= help "Available command line arguments. At least \"--wf\" and \"--exc\" must be specified."
