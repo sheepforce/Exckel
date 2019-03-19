@@ -213,6 +213,7 @@ makeLenses ''CubePlotter
 -- | alpha and beta orbitals are only distinguished by their numbers (program dependent)
 data CubeFiles = CubeFiles
   { _orbCubes      :: Maybe [FilePath]
+  , _natOrbCubes   :: Maybe [FilePath]
   , _cddCubes      :: Maybe [FilePath]
   , _electronCubes :: Maybe [FilePath]
   , _holeCubes     :: Maybe [FilePath]
@@ -224,6 +225,7 @@ makeLenses ''CubeFiles
 -- | ImageFormat the suffix might change.
 data ImageFiles = ImageFiles
   { _orbImages      :: Maybe [(Int, FilePath)]
+  , _natOrbImages   :: Maybe [(Int, Int, FilePath)]
   , _cddImages      :: Maybe [(Int, FilePath)]
   , _electronImages :: Maybe [(Int, FilePath)]
   , _holeImages     :: Maybe [(Int, FilePath)]
