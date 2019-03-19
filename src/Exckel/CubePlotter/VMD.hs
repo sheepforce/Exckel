@@ -82,7 +82,7 @@ plotCubes fi = do
   hClose vmdLogFile
   hClose vmdErrFile
 
-  exitCodeVMD <- waitForProcess vmdProcH
+  _ <- waitForProcess vmdProcH
   cleanupProcess (Just vmdInput, Just vmdOutput, Just vmdError, vmdProcH)
 
   -- call renderer if specified
@@ -110,14 +110,14 @@ plotCubes fi = do
         tacErr <- hGetContents tacError
         writeFile (vmdOutDir ++ [pathSeparator] ++ "Tachyon.out") tacLog
         writeFile (vmdOutDir ++ [pathSeparator] ++ "Tachyon.err") tacErr
-        exitCodeTachyon <- waitForProcess tacProcH
+        _ <- waitForProcess tacProcH
         cleanupProcess (Just tacInput, Just tacOutput, Just tacError, tacProcH)
 
         -- after tachyon has finished, trim with imagemagick's convert
         (Nothing, Nothing, Nothing, convertProcH) <- createProcess
           (proc (cubePlotterVMD ^. cpRenderer . rIMExePath) [ri, "-trim", imi])
           {cwd = Just vmdOutDir}
-        exitCodeConvert <- waitForProcess convertProcH
+        _ <- waitForProcess convertProcH
         cleanupProcess (Nothing, Nothing, Nothing, convertProcH)
 
         -- delete tachyon images with borders

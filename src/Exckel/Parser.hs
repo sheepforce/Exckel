@@ -202,7 +202,7 @@ nwchemTDDFT = do
     ciWavefunction' <- many1 $ do
       -- from orbital
       _ <- takeWhile isHorizontalSpace
-      fromVirtOcc <- string "Occ." <|> string "Virt."
+      _ <- string "Occ." <|> string "Virt."
       _ <- takeWhile isHorizontalSpace
       fromOrbI' <- decimal
       _ <- takeWhile isHorizontalSpace
@@ -214,7 +214,7 @@ nwchemTDDFT = do
       _ <- string "---"
       -- to block
       _ <- takeWhile isHorizontalSpace
-      toVirtOcc <- string "Occ." <|> string "Virt."
+      _ <- string "Occ." <|> string "Virt."
       _ <- takeWhile isHorizontalSpace
       toOrbI' <- decimal
       _ <- takeWhile isHorizontalSpace
@@ -258,7 +258,7 @@ mrccADC = do
   -- Multiplicity
   _ <- manyTill anyChar (string "Spin multiplicity:")
   _ <- takeWhile isHorizontalSpace
-  multiplicityGroundState <- decimal
+  _ <- decimal
   -- wavefunction type
   wfString <- manyTill anyChar (string "hf calc")
   let wfType' = case (reverse . take 3 . reverse . T.words . T.pack $ wfString) of
@@ -352,7 +352,7 @@ mrccADC = do
     _ <- takeWhile isHorizontalSpace
     adc2State <- decimal
     _ <- takeWhile isHorizontalSpace
-    cisState <- decimal
+    _ <- decimal -- the CIS state ordering
     _ <- takeWhile isHorizontalSpace
     _ <- double -- x component of dipole
     _ <- takeWhile isHorizontalSpace

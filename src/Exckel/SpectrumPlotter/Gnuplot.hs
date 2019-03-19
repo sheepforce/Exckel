@@ -77,7 +77,7 @@ plotSpectrum fi es fes = do
   hClose gnuplotLogFile
   hClose gnuplotErrFile
 
-  exitCode <- waitForProcess gnuplotProcH
+  _ <- waitForProcess gnuplotProcH
   cleanupProcess (Just gnuplotInput, Just gnuplotOutput, Just gnuplotError, gnuplotProcH)
   where
     outDir = fi ^. outputPrefix

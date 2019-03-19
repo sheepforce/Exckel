@@ -75,7 +75,7 @@ plotSpectrum fi es fes = do
   hClose spectrifyLogFile
   hClose spectrifyErrFile
 
-  exitCode <- waitForProcess spectrifyProcH
+  _ <- waitForProcess spectrifyProcH
   cleanupProcess (Just spectrifyInput, Just spectrifyOutput, Just spectrifyError, spectrifyProcH)
 
   renameFile (outDir ++ [pathSeparator] ++ "spectra.png") (outDir ++ [pathSeparator] ++ "Spectrum.png")
