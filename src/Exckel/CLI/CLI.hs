@@ -22,6 +22,7 @@ import           Exckel.CmdArgs
 import qualified Exckel.CubeGenerator.Exckel      as CG.Exckel
 import qualified Exckel.CubeGenerator.MultiWFN    as CG.MWFN
 import qualified Exckel.CubePlotter.VMD           as CP.VMD
+import           Exckel.DocumentCreator
 import           Exckel.EmbedContents
 import           Exckel.ExcUtils
 import           Exckel.Parser                    hiding (vmdState)
@@ -31,10 +32,10 @@ import           Exckel.Types
 import           Lens.Micro.Platform
 import           System.Directory
 import           System.FilePath
+import           Text.Pandoc                      hiding (FileInfo, def,
+                                                   getDataFileName)
+import qualified Text.Pandoc                      as PD (def)
 import           Text.Read
-import qualified Text.Pandoc as PD (def)
-import           Text.Pandoc                    hiding (FileInfo, def, getDataFileName)
-import Exckel.DocumentCreator
 
 -- | Entry point for the executable. Get command line arguments with defaults and call for check and
 -- | from within the check possibly for other routines.
