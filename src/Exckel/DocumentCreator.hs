@@ -6,21 +6,15 @@ found in the filesystem and writes docx or odt summary documents.
 module Exckel.DocumentCreator
 ( excitationSummary
 ) where
-import           Control.Monad.IO.Class
-import           Data.Attoparsec.Text
-import qualified Data.ByteString.Lazy   as B
-import           Data.List.Split        (chunksOf)
+import           Data.List.Split     (chunksOf)
 import           Data.Maybe
-import qualified Data.Text              as T
-import qualified Data.Text.IO           as T
-import qualified Data.Vector            as V
+import qualified Data.Vector         as V
 import           Exckel.ExcUtils
-import           Exckel.Parser
-import           Exckel.Types           hiding (def)
+import           Exckel.Types
 import           Lens.Micro.Platform
 import           System.FilePath
-import           Text.Pandoc            hiding (FileInfo)
-import           Text.Pandoc.Builder    hiding (FileInfo)
+import           Text.Pandoc         hiding (FileInfo)
+import           Text.Pandoc.Builder
 import           Text.Printf
 
 -- | This generates a Pandoc document as a summary of an excited state calculation. It takes a
@@ -88,10 +82,10 @@ excitationSummary fi es =
                  , para . text . printf "%6.4F" $ e ^. oscillatorStrength
                  , case (getCDDImageByType fi e holeImages) of
                      Nothing -> para . text $ ""
-                     Just (nState, imagePath) -> para $ imageWith ("", ["align-center"], [("width", "2.2cm")]) imagePath "" (text . ("hole " ++) . show $ nState)
+                     Just (nState', imagePath) -> para $ imageWith ("", ["align-center"], [("width", "2.2cm")]) imagePath "" (text . ("hole " ++) . show $ nState')
                  , case (getCDDImageByType fi e electronImages) of
                      Nothing -> para . text $ ""
-                     Just (nState, imagePath) -> para $ imageWith ("", ["align-center"], [("width", "2.2cm")]) imagePath "" (text . ("electron " ++) . show $ nState)
+                     Just (nState', imagePath) -> para $ imageWith ("", ["align-center"], [("width", "2.2cm")]) imagePath "" (text . ("electron " ++) . show $ nState')
                  ]
           ) excStates
     -- create a table of all orbital pictures
@@ -128,7 +122,7 @@ excitationSummary fi es =
           Nothing -> ""
           Just s -> case s of
             Alpha -> "A"
-            Beta -> "B"
+            Beta  -> "B"
         orbString :: (Int, Maybe Spin) -> String
         orbString o =
           show (fst o) ++
@@ -147,11 +141,11 @@ excitationSummary fi es =
     manyWeightEntry ciDs = lineBlock . map text . V.toList . V.map weightEntry $ ciDs
     -- Look for hole image of the excited state. Give the FileInfo type, an excited state and the
     -- lens for the corresponding image type (from ImageFiles type).
-    getCDDImageByType fi eS lens = case candidates of
+    getCDDImageByType fi' eS' lens' = case candidates of
       Nothing -> Nothing
       Just [] -> Nothing
       Just x  -> Just $ head x
       where
         candidates =
-          filter (\x -> (fst x) == (eS ^. nState)) <$>
-          fi ^. imageFiles . lens
+          filter (\x -> (fst x) == (eS' ^. nState)) <$>
+          fi' ^. imageFiles . lens'

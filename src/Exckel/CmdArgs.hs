@@ -11,10 +11,8 @@ module Exckel.CmdArgs
 , exckelArgs
 )
 where
-import           Paths_Exckel
 import           System.Console.CmdArgs
 import           System.Directory
-import           System.IO
 import           System.IO.Unsafe
 
 data ExckelArgs = ExckelArgs
@@ -29,7 +27,7 @@ data ExckelArgs = ExckelArgs
   , multiwfn       :: Maybe FilePath
   , cddcalculator  :: String
   , tachyon        :: Maybe FilePath
-  , pdFormat       :: String
+  , panFormat      :: String
   , panref         :: Maybe FilePath
   , wf             :: Maybe FilePath
   , exc            :: Maybe FilePath
@@ -41,9 +39,11 @@ data ExckelArgs = ExckelArgs
   , energyfilter   :: Maybe (Double, Double)
   , states         :: Maybe String
   , calcsoftware   :: String
+  , calctype       :: String
   , spectrum       :: String
   } deriving (Show, Data, Typeable)
 
+exckelArgs :: ExckelArgs
 exckelArgs = ExckelArgs
   { nocalcorbs      =  False
                    &= help "Do not calculate cubes for orbitals."
@@ -89,7 +89,7 @@ exckelArgs = ExckelArgs
                    &= help "Tachyon executable. Default is first tachyon executable found on system"
                    &= typFile
 
-  , pdFormat       =  "docx"
+  , panFormat      =  "docx"
                    &= help "Format of the summary to write with Pandoc. Any of [docx | odt | latex]"
                    &= typ "STRING"
 
@@ -118,7 +118,7 @@ exckelArgs = ExckelArgs
                    &= typ "FLOAT"
 
   , fwhm           =  Nothing
-                   &= help "Full width at half maximum of the gaussian function used to convolute the stick spectrum."
+                   &= help "Full width at half maximum of the gaussian function used to convolute the stick spectrum in electron volt."
                    &= typ "FLOAT"
 
   , weightfilter   =  0.01
@@ -134,11 +134,16 @@ exckelArgs = ExckelArgs
                    &= typ "[INT]"
 
   , calcsoftware   =  "gaussian"
-                   &= help "Calculation software, that produced the output file. [gaussian | nwchem]"
+                   &= help "Calculation software, that produced the output file. [gaussian | nwchem | mrcc]"
                    &= typ "STRING"
 
   , spectrum       =  "spectrify"
                    &= help "Program to plot the spectrum. [gnuplot | spectrify]"
                    &= typ "STRING"
+
+  , calctype       =  "tddft"
+                   &= help "Calculation type. [tddft | rc-adc2 (reduced cost ADC(2))]"
+                   &= typ "STRING"
+
   } &= summary "The Exckel automatic summary programm"
     &= help "Available command line arguments. At least \"--wf\" and \"--exc\" must be specified."

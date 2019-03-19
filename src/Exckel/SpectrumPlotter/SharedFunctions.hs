@@ -1,12 +1,11 @@
 module Exckel.SpectrumPlotter.SharedFunctions
 ( createDataFiles
 ) where
-import qualified Data.Text       as T
-import qualified Data.Text.IO    as T
+import qualified Data.Text           as T
 import           Exckel.ExcUtils
 import           Exckel.Types
+import           Lens.Micro.Platform
 import           Text.Printf
-import Lens.Micro.Platform
 
 createDataFiles :: FileInfo -> [ExcState] -> [ExcState] -> (T.Text, T.Text, T.Text, T.Text)
 createDataFiles fi es fes =

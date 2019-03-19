@@ -5,21 +5,22 @@ Contains all parsers for quantum chemistry software outputs. Contains also parse
 module Exckel.Parser
 ( gaussianLogTDDFT
 , nwchemTDDFT
+, mrccADC
 , cube
 , vmdState
 , vmdRC
 ) where
 import           Control.Applicative
-import           Data.Array.Repa      (Array, DIM3, U, Z)
+--import           Data.Array.Repa      (Array, DIM3, U, Z)
 import qualified Data.Array.Repa      as R
-import           Data.Attoparsec.Text
+import           Data.Attoparsec.Text hiding (take)
+import           Data.Sort
 import qualified Data.Text            as T
 import qualified Data.Vector          as V
 import           Exckel.ExcUtils
 import           Exckel.Types
 import           Lens.Micro.Platform
-import           Prelude              hiding (take, takeWhile)
-import           Text.Printf
+import           Prelude              hiding (takeWhile)
 
 -- | From the whole Gaussian TDDFT output, parse all single excited state and skip over all other
 -- | parts
@@ -106,6 +107,7 @@ gaussianLogTDDFT = do
                     , _toOrb = (fromOrbI', spinFrom')
                     }
                 ]
+              _    -> error "Couldn't pattern match excitation direction."
         , _weight = (coeff')**2.0
         }
     _ <- option "" $ do
@@ -200,7 +202,7 @@ nwchemTDDFT = do
     ciWavefunction' <- many1 $ do
       -- from orbital
       _ <- takeWhile isHorizontalSpace
-      fromVirtOcc <- string "Occ." <|> string "Virt."
+      _ <- string "Occ." <|> string "Virt."
       _ <- takeWhile isHorizontalSpace
       fromOrbI' <- decimal
       _ <- takeWhile isHorizontalSpace
@@ -212,7 +214,7 @@ nwchemTDDFT = do
       _ <- string "---"
       -- to block
       _ <- takeWhile isHorizontalSpace
-      toVirtOcc <- string "Occ." <|> string "Virt."
+      _ <- string "Occ." <|> string "Virt."
       _ <- takeWhile isHorizontalSpace
       toOrbI' <- decimal
       _ <- takeWhile isHorizontalSpace
@@ -249,6 +251,128 @@ nwchemTDDFT = do
       , _nBasisFunctions    = nBasisFunctions'
       }
   return states'
+
+-- | Parse mrcc output of an ADC2 calculation. They can be closed shell only, currently i think
+mrccADC :: Parser [ExcState]
+mrccADC = do
+  -- Multiplicity
+  _ <- manyTill anyChar (string "Spin multiplicity:")
+  _ <- takeWhile isHorizontalSpace
+  _ <- decimal
+  -- wavefunction type
+  wfString <- manyTill anyChar (string "hf calc")
+  let wfType' = case (reverse . take 3 . reverse . T.words . T.pack $ wfString) of
+        ["restricted", "closed", "shell"] -> Just ClosedShell
+        [_, _, "unrestricted"]            -> Just OpenShell
+        _                                 -> Nothing
+  -- number of basis functions
+  _ <- manyTill anyChar (string "Total number of basis functions:")
+  _ <- takeWhile isHorizontalSpace
+  nBasisFunctions' <- decimal
+  -- excited states
+  cisOrderedStates <- many1 $ do
+    {-
+    -- Beginning of an excited state block. Unfortunately, this occurs 2 times for each state. Once
+    -- for the MP2 part and once for ADC(2). The parser is very exact here and includes all the
+    -- uninteresting parts, to make sure to not match MP2 blocks but only the ADC(2) blocks.
+    _ <- manyTill anyChar (string "Final result in atomic units for root")
+    _ <- takeWhile isHorizontalSpace
+    nStateCIS <- decimal
+    _ <- char ':'
+    skipSpace
+    _ <- takeWhile isHorizontalSpace
+    _ <- string "Total Hartree-Fock energy:"
+    _ <- takeWhile isHorizontalSpace
+    _ <- double
+    endOfLine
+    _ <- takeWhile isHorizontalSpace
+    _ <- string "Total ADC(2) energy:"
+    _ <- takeWhile isHorizontalSpace
+    _ <- double
+    endOfLine
+    _ <- takeWhile isHorizontalSpace
+    _ <- string "ADC(2) excitation energy:"
+    -}
+    -- parsing with "Final result in atomic units for root" leads to the parser entering a "many1"
+    -- loop, i think, which can not be satisfied. Therefore only look for "ADC(2) excitation energy"
+    _ <- manyTill anyChar (string "ADC(2) excitation energy:")
+    _ <- takeWhile isHorizontalSpace
+    relEnergy' <- double
+    endOfLine
+    _ <- takeWhile isHorizontalSpace
+    _ <- string "Spin multiplicity:"
+    _ <- takeWhile isHorizontalSpace
+    multiplicity' <- decimal
+    skipSpace
+    _ <- string "Dominant coefficients"
+    skipSpace
+    _ <- string "Printing threshold:"
+    _ <- takeWhile isHorizontalSpace
+    _ <- double
+    skipSpace
+    _ <- string "coeff.   occ.       virt."
+    skipSpace
+    ciDeterminants' <- many1 $ do
+      _ <- takeWhile isHorizontalSpace
+      coeff' <- double
+      _ <- takeWhile isHorizontalSpace
+      fromOrbI' <- decimal
+      _ <- takeWhile isHorizontalSpace
+      _ <- string "-->"
+      _ <- takeWhile isHorizontalSpace
+      toOrbI' <- decimal
+      _ <- takeWhile isHorizontalSpace
+      endOfLine
+      return CIDeterminant
+        { _excitationPairs =
+            [ OrbitalExcitation
+                { _fromOrb = (fromOrbI', Nothing)
+                , _toOrb   = (toOrbI', Nothing)
+                }
+            ]
+        , _weight = (coeff')**2.0
+        }
+    return ExcState
+      { _nState             = undefined
+      , _multiplicity       = multiplicity'
+      , _wfType             = wfType'
+      , _s2                 = Nothing
+      , _relEnergy          = relEnergy'
+      , _oscillatorStrength = undefined
+      , _ciWavefunction     = V.fromList ciDeterminants'
+      , _nBasisFunctions    = nBasisFunctions'
+      }
+  -- MRCC has the excited state oscillator strength not together with the excited states, but at
+  -- at the end of the output file. At the end also the correct order of the excited states is
+  -- given. Previously, this has only been the CIS ordering of states, not the ADC(2) ordering.
+  _ <- manyTill anyChar (string "Calculate oscillator and rotational strength...")
+  _ <- manyTill anyChar (string "===========================================================================================")
+  endOfLine
+  adc2StateFosc <- many1 $ do
+    _ <- takeWhile isHorizontalSpace
+    adc2State <- decimal
+    _ <- takeWhile isHorizontalSpace
+    _ <- decimal -- the CIS state ordering
+    _ <- takeWhile isHorizontalSpace
+    _ <- double -- x component of dipole
+    _ <- takeWhile isHorizontalSpace
+    _ <- double -- y component of dipole
+    _ <- takeWhile isHorizontalSpace
+    _ <- double -- z component of dipole
+    _ <- takeWhile isHorizontalSpace
+    _ <- double -- total dipole strength
+    _ <- takeWhile isHorizontalSpace
+    adc2Fosc <- double
+    _ <- takeWhile isHorizontalSpace
+    endOfLine
+    return (adc2State, adc2Fosc)
+  let energySortedADC2States = sortBy compareExcState cisOrderedStates
+      correctADC2states =
+        zipWith (\eS (adc2N, adc2F) -> (eS & nState .~ adc2N & oscillatorStrength .~ adc2F))
+          energySortedADC2States adc2StateFosc
+  return correctADC2states
+  where
+    compareExcState a b = (a ^. relEnergy) `compare` (b ^. relEnergy)
 
 -- | Parse a Gaussian cube file. Takes care of Angstrom Bohr conversion.
 cube :: Parser Cube

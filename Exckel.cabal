@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: d4650ee8e652fba023cfc3c7da71bd3679108f542cef6611ff87a2a6884fbaec
+-- hash: b34e9224c4d64bab7c6da26be78e45a6edfafe8a2bce29de8339db63864aa2a6
 
 name:           Exckel
 version:        0.2.0.0
@@ -32,6 +32,8 @@ source-repository head
 
 library
   exposed-modules:
+      Exckel.CLI.CLI
+      Exckel.CLI.SharedFunctions
       Exckel.CmdArgs
       Exckel.CubeGenerator.Exckel
       Exckel.CubeGenerator.MultiWFN
@@ -49,9 +51,10 @@ library
   hs-source-dirs:
       src
   default-extensions: OverloadedStrings
-  ghc-options: -optP-Wno-nonportable-include-path
+  ghc-options: -optP-Wno-nonportable-include-path -O2 -Wall -Wno-unused-top-binds -Wno-unused-local-binds -Wno-type-defaults
   build-depends:
-      attoparsec >=0.13.2.2
+      ansi-terminal >=0.8.2
+    , attoparsec >=0.13.2.2
     , base >=4.7 && <5
     , bytestring >=0.10.8.2
     , cmdargs >=0.10.20
@@ -65,6 +68,7 @@ library
     , pandoc-types >=1.17.5.4
     , process >=1.6.3.0
     , repa >=3.4.1.4
+    , sort >=1.0.0.0
     , split >=0.2.2.3
     , text >=1.2.3.1
     , unordered-containers >=0.2.9.0
@@ -77,7 +81,7 @@ executable exckel
       Paths_Exckel
   hs-source-dirs:
       app
-  ghc-options: -threaded -rtsopts -with-rtsopts=-N -optP-Wno-nonportable-include-path
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N -optP-Wno-nonportable-include-path -O2 -Wall -Wno-unused-top-binds -Wno-unused-local-binds -Wno-type-defaults
   build-depends:
       Exckel
     , ansi-terminal >=0.8.2
@@ -86,9 +90,18 @@ executable exckel
     , bytestring >=0.10.8.2
     , cmdargs >=0.10.20
     , directory >=1.3.3.0
+    , file-embed >=0.0.11
     , filepath >=1.4.2.1
+    , ginger >=0.8.4.0
     , microlens-platform >=0.3.11
+    , mtl >=2.2.2
     , pandoc >=2.5
+    , pandoc-types >=1.17.5.4
+    , process >=1.6.3.0
+    , repa >=3.4.1.4
+    , sort >=1.0.0.0
+    , split >=0.2.2.3
     , text >=1.2.3.1
+    , unordered-containers >=0.2.9.0
     , vector >=0.12.0.2
   default-language: Haskell2010

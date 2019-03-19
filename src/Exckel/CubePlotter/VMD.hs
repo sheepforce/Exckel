@@ -9,11 +9,9 @@ render the images.
 module Exckel.CubePlotter.VMD
 ( plotCubes
 ) where
-import           Control.Applicative
 import           Control.Monad.Identity
 import           Data.Attoparsec.Text
 import qualified Data.HashMap.Lazy      as H
-import           Data.List              hiding (length)
 import           Data.Maybe
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as T
@@ -31,7 +29,7 @@ plotCubes fi = do
   -- If a startup file for vmd is specified, take this one. If not, look for the vmdrc in the home
   -- directory for the vmdrc file and clean it up, so that it can be used. If this also does not
   -- exist, live with the defaults of VMD by writing an empty startup file
-  vmdStartupFile <- case (fi ^. cubePlotter . cpStartUp) of
+  vmdStartupFile <- case (cubePlotterVMD ^. cpStartUp) of
     Nothing -> do
       homeDir <- getHomeDirectory
       hasVMDRC <- doesFileExist (homeDir ++ [pathSeparator] ++ ".vmdrc")
@@ -55,10 +53,10 @@ plotCubes fi = do
   -- launch a VMD process
   createDirectoryIfMissing True vmdOutDir
   (Just vmdInput, Just vmdOutput, Just vmdError, vmdProcH) <-
-    createProcess (proc (fi ^. cubePlotter . cpExePath) [ "-eofexit"
-                                                        , "-startup", (vmdOutDir ++ [pathSeparator] ++ "VMDStartup.tcl")
-                                                        , "-e", vmdOutDir ++ [pathSeparator] ++ "PlotVMD.tcl"
-                                                        ]
+    createProcess (proc (cubePlotterVMD ^. cpExePath) [ "-eofexit"
+                                                      , "-startup", (vmdOutDir ++ [pathSeparator] ++ "VMDStartup.tcl")
+                                                      , "-e", vmdOutDir ++ [pathSeparator] ++ "PlotVMD.tcl"
+                                                      ]
                   )
     { std_out = CreatePipe
     , std_in = CreatePipe
@@ -84,18 +82,18 @@ plotCubes fi = do
   hClose vmdLogFile
   hClose vmdErrFile
 
-  exitCode <- waitForProcess vmdProcH
+  _ <- waitForProcess vmdProcH
   cleanupProcess (Just vmdInput, Just vmdOutput, Just vmdError, vmdProcH)
 
   -- call renderer if specified
-  case (fi ^. cubePlotter . cpRenderer) of
+  case (cubePlotterVMD ^. cpRenderer) of
     Tachyon {} -> do
       -- iterate over all written tachyon files ("t") and over all tachyon images after
       -- rendering ("ri") and the imagemagick results
       mapM_ (\(t, ri, imi) -> do
         -- call Tachyon on each input
         (Just tacInput, Just tacOutput, Just tacError, tacProcH) <- createProcess
-          (proc (fi ^. cubePlotter . cpRenderer . rExePath)
+          (proc (cubePlotterVMD ^. cpRenderer . rExePath)
             [ t -- Tachyon input file
             , "-o",  ri
             , "-res", show resX, show resY
@@ -112,20 +110,23 @@ plotCubes fi = do
         tacErr <- hGetContents tacError
         writeFile (vmdOutDir ++ [pathSeparator] ++ "Tachyon.out") tacLog
         writeFile (vmdOutDir ++ [pathSeparator] ++ "Tachyon.err") tacErr
-        exitCode <- waitForProcess tacProcH
+        _ <- waitForProcess tacProcH
         cleanupProcess (Just tacInput, Just tacOutput, Just tacError, tacProcH)
 
         -- after tachyon has finished, trim with imagemagick's convert
         (Nothing, Nothing, Nothing, convertProcH) <- createProcess
-          (proc (fi ^. imConvertExePath) [ri, "-trim", imi])
+          (proc (cubePlotterVMD ^. cpRenderer . rIMExePath) [ri, "-trim", imi])
           {cwd = Just vmdOutDir}
-        exitCode <- waitForProcess convertProcH
+        _ <- waitForProcess convertProcH
         cleanupProcess (Nothing, Nothing, Nothing, convertProcH)
 
         -- delete tachyon images with borders
         removeFile ri
         ) (zip3 tachyonInputs tachyonImages imagemagickImages)
   where
+    cubePlotterVMD = case (fi ^. cubePlotter) of
+      Nothing -> error "You have requested cube plotting with VMD but VMD and a Renderer were not specified."
+      Just cp -> cp
     vmdOutDir = fi ^. outputPrefix
     tachyonInputs =
       (map ((++ ".dat") . T.unpack) . getBaseNames . concat) $
@@ -134,9 +135,9 @@ plotCubes fi = do
       , fromMaybe [] $ fi ^. cubeFiles .electronCubes
       , fromMaybe [] $ fi ^. cubeFiles . holeCubes
       ]
-    resX = fst $ fi ^. cubePlotter . cpRenderer . rResolution
-    resY = snd $ fi ^. cubePlotter . cpRenderer . rResolution
-    imageFormat = fi ^. cubePlotter . cpRenderer . rImageFormat
+    resX = fst $ cubePlotterVMD  ^. cpRenderer . rResolution
+    resY = snd $ cubePlotterVMD ^. cpRenderer . rResolution
+    imageFormat = cubePlotterVMD ^. cpRenderer . rImageFormat
     imageSuffix = T.unpack . ("." `T.append`) . T.toLower . T.pack . show $ imageFormat
     tachyonImages = map ((++ imageSuffix) . (++ "_tachyon") . fst . splitExtension) tachyonInputs
     imagemagickImages = map ((++ imageSuffix) . fst . splitExtension) tachyonInputs
@@ -150,7 +151,7 @@ plotCubes fi = do
 substitueTemplate :: FileInfo -> IO ()
 substitueTemplate fi = do
   -- read the VMD state file (if set) to get the viewpoint settings
-  stateRaw <- case (fi ^. cubePlotter . cpStateFile) of
+  stateRaw <- case (cubePlotterVMD ^. cpStateFile) of
     Just p  -> T.readFile p
     Nothing -> return ""
   let stateParsed = parseOnly vmdState stateRaw
@@ -173,7 +174,7 @@ substitueTemplate fi = do
         ] :: H.HashMap T.Text T.Text
 
   -- read the Tcl template script for VMD, parse it and make substitutions (using Ginger)
-  let templateRaw = T.unpack $ fi ^. cubePlotter . cpTemplate :: String
+  let templateRaw = T.unpack $ cubePlotterVMD ^. cpTemplate :: String
       templateParsed = runIdentity $
         parseGinger
           (const $ return Nothing) -- no resolver being used, as no includes necessary
@@ -183,6 +184,10 @@ substitueTemplate fi = do
   case templateOutput of
     Right t -> T.writeFile ((fi ^. outputPrefix) ++ [pathSeparator] ++ "PlotVMD.tcl") t
     Left e  -> print e
+  where
+    cubePlotterVMD = case (fi ^. cubePlotter) of
+      Nothing -> error "You have requested cube plotting with VMD but VMD and a Renderer were not specified."
+      Just cp -> cp
 
 -- | From a list of filepaths, get their basenames
 getBaseNames :: [FilePath] -> [T.Text]

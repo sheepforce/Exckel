@@ -27,17 +27,19 @@ import           Lens.Micro.Platform
 -- | back to the representation in excited state CI determinants.
 orbNumber2Orb :: Int -> Int -> Bool ->  (Int, Maybe Spin)
 orbNumber2Orb nOrb nBasFun isOpenShell = case (nOrb <= nBasFun, isOpenShell) of
-  (True, False) -> (nOrb, Nothing)
-  (True, True) -> (nOrb, Just Alpha)
-  (False, True) -> (nOrb - nBasFun, Just Beta)
+  (True, False)  -> (nOrb, Nothing)
+  (True, True)   -> (nOrb, Just Alpha)
+  (False, True)  -> (nOrb - nBasFun, Just Beta)
+  (False, False) -> error "Found more orbitals than there are basis functions but your calcualtion was closed shell."
 
 -- | Given excited state information, this function will convert back the orbital number to orbital
 -- | number + spin and make a string from it.
 orbNumberToSpinOrbNumber :: Int -> Bool -> Int -> String
 orbNumberToSpinOrbNumber nBasFun isOpenShell nOrb = case (nOrb <= nBasFun, isOpenShell) of
-  (True, False) -> show nOrb
-  (True, True) -> show nOrb ++ "A"
-  (False, True) -> show (nOrb - nBasFun) ++ "B"
+  (True, False)  -> show nOrb
+  (True, True)   -> show nOrb ++ "A"
+  (False, True)  -> show (nOrb - nBasFun) ++ "B"
+  (False, False) -> error "Found more orbitals than there are basis functions but your calcualtion was closed shell."
 
 -- | Get orbital indices (1 based) for an excited state as written to the wavefunction file. Beta
 -- | orbitals usually start at (n(alpha orbitals) + 1).

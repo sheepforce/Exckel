@@ -6,8 +6,7 @@ orbital counting starts from 1, no matter which program is being used.
 -}
 {-# LANGUAGE TemplateHaskell #-}
 module Exckel.Types
-( Default(..)
-, Spin(..)
+( Spin(..)
 , OrbitalExcitation(..)
 , fromOrb
 , toOrb
@@ -33,6 +32,7 @@ module Exckel.Types
 , rExePath
 , rResolution
 , rImageFormat
+, rIMExePath
 , CubePlotter(..)
 , cpExePath
 , cpStateFile
@@ -49,7 +49,12 @@ module Exckel.Types
 , cddImages
 , electronImages
 , holeImages
+, CalcType(..)
+, fullTDDFT
+, order
+, redCost
 , CalcSoftware(..)
+, calcType
 , PDDocType(..)
 , PandocInfo(..)
 , pdRefDoc
@@ -58,6 +63,12 @@ module Exckel.Types
 , spExePath
 , spERange
 , spBroadening
+, StateSelection(..)
+, ssHigherMultContrib
+, ssMinimumOscillatorStrenght
+, ssEnergyFilter
+, ssSpecificStates
+, ssWeightFilter
 , FileInfo(..)
 , logFile
 , calcSoftware
@@ -68,10 +79,9 @@ module Exckel.Types
 , outputPrefix
 , cubeFiles
 , imageFiles
-, imConvertExePath
 , pandocInfo
 , spectrumPlotter
-, selStates
+, stateSelection
 , Cube(..)
 , comment
 , volumeOrigin
@@ -85,20 +95,11 @@ module Exckel.Types
 , atomicNumber
 , coordinate
 ) where
-import           Data.Array.Repa       ((:.), Array, DIM3, U)
-import qualified Data.Array.Repa       as R
-import qualified Data.ByteString.Char8 as B
-import           Data.Maybe
-import qualified Data.Text             as T
-import           Data.Vector
-import           Exckel.EmbedContents
+import           Data.Array.Repa     (Array, DIM3, U)
+import qualified Data.Text           as T
+import           Data.Vector         hiding ((++))
 import           Lens.Micro.Platform
-import           System.Directory
-import           System.IO
-import           System.IO.Unsafe
 
-class (Default a) where
-  def :: a
 
 ----------------------------------------------------------------------------------------------------
 -- Wavefunction data types
@@ -162,10 +163,12 @@ data OrbGenerator =
 -}
   deriving (Eq, Show)
 makeLenses ''OrbGenerator
+{-
 instance (Default OrbGenerator) where
   def = MultiWFNOrb
     { _ogExePath = fromMaybe "Multiwfn" $ unsafePerformIO $ findExecutable "Multiwfn"
     }
+-}
 
 -- | Programm to calculate CDD cube files from orbitals
 data CDDGenerator =
@@ -175,8 +178,10 @@ data CDDGenerator =
   | REPA
   deriving (Eq, Show)
 makeLenses ''CDDGenerator
+{-
 instance (Default CDDGenerator) where
   def = REPA
+-}
 
 -- | Image formats, that might be used throughout the program, especially during rendering
 data ImageFormat = JPG | PNG deriving (Eq, Show)
@@ -187,15 +192,19 @@ data Renderer =
       { _rExePath     :: FilePath
       , _rResolution  :: (Int, Int)
       , _rImageFormat :: ImageFormat
+      , _rIMExePath   :: FilePath
       }
   deriving (Eq, Show)
 makeLenses ''Renderer
+{-
 instance (Default Renderer) where
   def = Tachyon
     { _rExePath = fromMaybe "tachyon" $ unsafePerformIO $ findExecutable "tachyon"
     , _rResolution = (2000,1200)
     , _rImageFormat = PNG
+    , _rIMExePath = fromMaybe "convert" . unsafePerformIO $ findExecutable "convert"
     }
+-}
 
 -- | Programm to plot a set of cube files
 data CubePlotter =
@@ -214,6 +223,7 @@ data CubePlotter =
 -}
   deriving (Eq, Show)
 makeLenses ''CubePlotter
+{-
 instance (Default CubePlotter) where
   def = VMD
     { _cpExePath = "vmd"
@@ -222,6 +232,7 @@ instance (Default CubePlotter) where
     , _cpRenderer = def
     , _cpStartUp = Nothing
     }
+-}
 
 -- | If cubes are (already) calculated, store the filepaths to all the cubes here. Naming
 -- | conventions of other functions still apply. For a given excited state the cubes are called
@@ -236,6 +247,7 @@ data CubeFiles = CubeFiles
   , _holeCubes     :: Maybe [FilePath]
   } deriving (Eq, Show)
 makeLenses ''CubeFiles
+{-
 instance (Default CubeFiles) where
   def = CubeFiles
     { _orbCubes = Nothing
@@ -243,6 +255,7 @@ instance (Default CubeFiles) where
     , _electronCubes = Nothing
     , _holeCubes = Nothing
     }
+-}
 
 -- | If images are already available, store all the filepaths here. Naming conventions of other
 -- | functions still apply. See CubeFiles data type for more information. Depending on the chosen
@@ -254,6 +267,7 @@ data ImageFiles = ImageFiles
   , _holeImages     :: Maybe [(Int, FilePath)]
   } deriving (Eq, Show)
 makeLenses ''ImageFiles
+{-
 instance (Default ImageFiles) where
   def = ImageFiles
     { _orbImages = Nothing
@@ -261,9 +275,65 @@ instance (Default ImageFiles) where
     , _electronImages = Nothing
     , _holeImages = Nothing
     }
+-}
+
+-- | Type of the calculation, that has been performed.
+data CalcType =
+    TDDFT
+      { _fullTDDFT :: Bool
+      }
+  | ADC
+      { _order   :: Int
+      , _redCost :: Bool
+      }
+  deriving (Eq)
+makeLenses ''CalcType
+{-
+instance (Default CalcType) where
+  def = TDDFT
+    { _fullTDDFT = True
+    }
+-}
+instance (Show CalcType) where
+  show a = case a of
+    TDDFT{} ->
+        ( case (_fullTDDFT a) of
+            True  -> "Linear Response "
+            False -> "TDA "
+        ) ++
+        "TDDFT"
+    ADC{} ->
+        ( case (_redCost a) of
+            True  -> "Reduced Cost "
+            False -> ""
+        ) ++
+        "ADC(" ++ (show $ _order a) ++ ")"
 
 -- | Quantum chemistry program from which the logfile comes
-data CalcSoftware = Gaussian | NWChem deriving (Eq, Show)
+data CalcSoftware =
+    Gaussian
+      { _calcType :: CalcType
+      }
+  | NWChem
+      { _calcType :: CalcType
+      }
+  | MRCC
+      { _calcType :: CalcType
+      }
+  deriving Eq
+makeLenses ''CalcSoftware
+{-
+instance (Default CalcSoftware) where
+  def = Gaussian
+    { _calcType = def
+    }
+-}
+instance (Show CalcSoftware) where
+  show a = case a of
+    Gaussian{} -> "Gaussian with " ++ (show $ a ^. calcType)
+    NWChem{}   -> "NWchem with " ++ (show $ a ^. calcType)
+    MRCC{}     -> "MRCC with" ++ (show $ a ^. calcType)
+
 
 -- | Supported output formats for the excitation summary
 data PDDocType = DOCX | ODT | LATEX deriving (Eq, Show)
@@ -274,11 +344,13 @@ data PandocInfo = PandocInfo
   , _pdDocType :: PDDocType
   } deriving (Eq, Show)
 makeLenses ''PandocInfo
+{-
 instance (Default PandocInfo) where
   def = PandocInfo
     { _pdRefDoc = Nothing
     , _pdDocType = DOCX
     }
+-}
 
 -- | Programm for plotting spectra and parameters for it
 data SpectrumPlotter =
@@ -293,11 +365,24 @@ data SpectrumPlotter =
       }
   deriving (Eq, Show)
 makeLenses ''SpectrumPlotter
+{-
 instance (Default SpectrumPlotter) where
   def = Spectrify
     { _spERange = Nothing
     , _spBroadening = 0.3
     }
+-}
+
+-- | Storing filters to remove the number of excited state for analysis.
+data StateSelection = StateSelection
+  { _ssHigherMultContrib         :: Maybe Double
+  , _ssMinimumOscillatorStrenght :: Maybe Double
+  , _ssEnergyFilter              :: Maybe (Double, Double)
+  , _ssSpecificStates            :: Maybe [Int]
+  , _ssWeightFilter              :: Double
+  }
+  deriving (Eq, Show)
+makeLenses ''StateSelection
 
 -- | FilePaths to files, given in absolute paths! Shall be expanded to absolute paths if only
 -- | specified as relative path during program execution.
@@ -305,35 +390,35 @@ data FileInfo = FileInfo
   { _logFile          :: FilePath
   , _calcSoftware     :: CalcSoftware
   , _waveFunctionFile :: FilePath
-  , _orbGenerator     :: OrbGenerator
-  , _cddGenerator     :: CDDGenerator
-  , _cubePlotter      :: CubePlotter
+  , _orbGenerator     :: Maybe OrbGenerator
+  , _cddGenerator     :: Maybe CDDGenerator
+  , _cubePlotter      :: Maybe CubePlotter
   , _outputPrefix     :: FilePath
   , _cubeFiles        :: CubeFiles
   , _imageFiles       :: ImageFiles
-  , _imConvertExePath :: FilePath
   , _pandocInfo       :: PandocInfo
   , _spectrumPlotter  :: SpectrumPlotter
-  , _selStates        :: Maybe [Int]
+  , _stateSelection   :: StateSelection
   }
   deriving (Eq, Show)
 makeLenses ''FileInfo
+{-
 instance (Default FileInfo) where
   def = FileInfo
     { _logFile = ""
-    , _calcSoftware = Gaussian
+    , _calcSoftware = def
     , _waveFunctionFile = ""
-    , _orbGenerator = def
-    , _cddGenerator = def
-    , _cubePlotter = def
+    , _orbGenerator = Nothing
+    , _cddGenerator = Nothing
+    , _cubePlotter = Nothing
     , _outputPrefix = "."
     , _cubeFiles = def
     , _imageFiles = def
-    , _imConvertExePath = fromMaybe "convert" $ unsafePerformIO $ findExecutable "convert"
     , _pandocInfo = def
     , _spectrumPlotter = def
-    , _selStates = Nothing
+    , _stateSelection = def
     }
+-}
 
 -- | Atoms stored in a gaussian cube file. Atomic coordinates are assumed to be allways in Bohr.
 data Atom = Atom

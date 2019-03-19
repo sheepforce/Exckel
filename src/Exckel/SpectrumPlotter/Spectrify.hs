@@ -7,7 +7,6 @@ module Exckel.SpectrumPlotter.Spectrify
 import qualified Data.ByteString.Char8                  as B
 import qualified Data.Text.IO                           as T
 import           Exckel.EmbedContents
-import           Exckel.ExcUtils
 import           Exckel.SpectrumPlotter.SharedFunctions
 import           Exckel.Types
 import           Lens.Micro.Platform
@@ -15,7 +14,6 @@ import           System.Directory
 import           System.FilePath
 import           System.IO
 import           System.Process
-import           Text.Printf
 
 -- | Plots the spectrum to a png file. Uses the informations about excited states. It takes
 -- |   - fi -> the FileInfo data type for paths
@@ -79,7 +77,7 @@ plotSpectrum fi es fes = do
   hClose spectrifyLogFile
   hClose spectrifyErrFile
 
-  exitCode <- waitForProcess spectrifyProcH
+  _ <- waitForProcess spectrifyProcH
   cleanupProcess (Just spectrifyInput, Just spectrifyOutput, Just spectrifyError, spectrifyProcH)
 
   -- renameFile (outDir ++ [pathSeparator] ++ "spectra.png") (outDir ++ [pathSeparator] ++ "Spectrum.png")

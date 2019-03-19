@@ -8,7 +8,6 @@ module Exckel.CubeGenerator.MultiWFN
 ) where
 import           Control.Monad
 import           Data.List.Split
-import           Data.Maybe
 import           Exckel.Types
 import           Lens.Micro.Platform
 import           System.Directory
@@ -66,12 +65,15 @@ calculateOrbs fi orbInds = do
   hClose mwfnLogFile
   hClose mwfnErrFile
 
-  exitCode <- waitForProcess mwfnProcH
+  _ <- waitForProcess mwfnProcH
   cleanupProcess (Just mwfnInput, Just mwfnOutput, Just mwfnError, mwfnProcH)
 
   zipWithM_ renameFile oldCubeNames newCubeNames
   where
-    mwfnPath = fi ^. orbGenerator . ogExePath
+    orbGeneratorMWFN = case (fi ^. orbGenerator) of
+      Nothing -> error "You requested Multiwfn calls but MultiWFN has not been found. This should not happen."
+      Just og -> og
+    mwfnPath = orbGeneratorMWFN ^. ogExePath
     mwfnWFN = fi ^. waveFunctionFile
     mwfnOutDir = fi ^. outputPrefix
     printOrbList :: [Int] -> String
@@ -128,7 +130,7 @@ calculateCDDs fi esN = do
     hClose mwfnLogFile
     hClose mwfnErrFile
 
-    exitCode <- waitForProcess mwfnProcH
+    _ <- waitForProcess mwfnProcH
     cleanupProcess (Just mwfnInput, Just mwfnOutput, Just mwfnError, mwfnProcH)
 
     renameFile oldCDDName (newCDDName n)
@@ -136,9 +138,11 @@ calculateCDDs fi esN = do
     renameFile oldHoleName (newHoleName n)
         ) esN
   where
-    mwfnPath = fi ^. cddGenerator . cddExePath
+    cddGeneratorMWFN = case (fi ^. cddGenerator) of
+      Nothing -> error "You requested Multiwfn calls but MultiWFN has not been found. This should not happen."
+      Just cg -> cg
+    mwfnPath = cddGeneratorMWFN ^. cddExePath
     mwfnWFN = fi ^. waveFunctionFile
-    mwfnLog = fi ^. logFile
     mwfnOutDir = fi ^. outputPrefix
     oldCDDName = mwfnOutDir ++ [pathSeparator] ++ "CDD.cub"
     newCDDName n = mwfnOutDir ++ [pathSeparator] ++ "CDD" ++ show n ++ ".cube"
