@@ -54,7 +54,7 @@ findAllCubes searchPath = do
     { _orbCubes      = Just orbCubesFiles
     , _cddCubes      = Just cddCubesFiles
     , _electronCubes = Just electronCubesFiles
-    , _holeCubes     = Just electronCubesFiles
+    , _holeCubes     = Just holeCubesFiles
     }
 
 -- | Look for all image files in the directory
