@@ -24,6 +24,8 @@ main = do
   fileInfoUpdatedOrbCubes <- calcOrbCubes fileInfoInitial excitedStatesAnalysis
   -- Calculate CDD cubes
   fileInfoUpdatedCDDCubes <- calcCDDCubes fileInfoUpdatedOrbCubes excitedStatesAnalysis
+  -- Render all cubes to images
+  fileInfoWithImages <- doPlots fileInfoUpdatedCDDCubes
 
 
   putStrLn "Hey sheep"

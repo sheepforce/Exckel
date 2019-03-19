@@ -5,6 +5,7 @@ module Exckel.CLI.CLI
 , plotSpectrum
 , calcOrbCubes
 , calcCDDCubes
+, doPlots
 )
 where
 import           Data.Attoparsec.Text
@@ -18,6 +19,7 @@ import           Exckel.CLI.SharedFunctions
 import           Exckel.CmdArgs
 import qualified Exckel.CubeGenerator.Exckel      as CG.Exckel
 import qualified Exckel.CubeGenerator.MultiWFN    as CG.MWFN
+import qualified Exckel.CubePlotter.VMD           as CP.VMD
 import           Exckel.EmbedContents
 import           Exckel.ExcUtils
 import           Exckel.Parser                    hiding (vmdState)
@@ -463,3 +465,42 @@ calcCDDCubes fi es = do
     & cubeFiles . holeCubes     .~ (cubeInfo ^. holeCubes)
     & cubeFiles . electronCubes .~ (cubeInfo ^. electronCubes)
     & cubeFiles . cddCubes      .~ (cubeInfo ^. cddCubes)
+
+
+
+-- | Plot and render images based on the cube files.
+doPlots :: FileInfo -> IO FileInfo
+doPlots fi = do
+  -- Header
+  logHeader "\n----"
+  logHeader "Plotting and rendering cubes:"
+
+  logMessage "Plot and render cubes" $ case (fi ^. cubePlotter) of
+    Nothing -> "no"
+    Just _  -> "yes"
+
+  imageInfo <- case (fi ^. cubePlotter) of
+    Just VMD {} -> do
+      -- Informations about the current settings
+      logMessage "Orbital cubes to plot" $ show $ fi ^. cubeFiles . orbCubes . _Just
+      logMessage "Hole density cubes to plot" $ show $ fi ^. cubeFiles . holeCubes . _Just
+      logMessage "Electron density cubes to plot" $ show $ fi ^. cubeFiles . electronCubes . _Just
+      logMessage "CDD cubes to plot" $ show $ fi ^. cubeFiles . cddCubes . _Just
+      logMessage "Cube plotter" $ fi ^. cubePlotter . _Just . cpExePath
+      logMessage "Cube renderer" $ fi ^. cubePlotter . _Just . cpRenderer . rExePath
+      logMessage "VMD startup file with general settings" $ fromMaybe
+        "/ (will try to use your \".vmdrc\")"
+        (fi ^. cubePlotter . _Just . cpStartUp)
+      logMessage "VMD state file for perspective" $ fromMaybe
+        "/ (will use default perspective)"
+        (fi ^. cubePlotter . _Just . cpStateFile)
+      let unwrappedRenderer = fromJust $ fi ^. cubePlotter
+      logMessage "Rendering resolution" $ show (unwrappedRenderer ^. cpRenderer . rResolution)
+      logMessage "Rendering image format" $ show (unwrappedRenderer ^. cpRenderer . rImageFormat)
+      logInfo "Calling VMD and Tachyon. See \"VMD.out\", \"VMD.err\", \"Tachyon.out\" and \"Tachyon.err\""
+      CP.VMD.plotCubes fi
+      allImages <- findAllImages (fi ^. outputPrefix)
+      return allImages
+    Nothing     -> return $ fi ^. imageFiles
+
+  return (fi & imageFiles .~ imageInfo)

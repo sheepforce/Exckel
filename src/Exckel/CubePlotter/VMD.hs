@@ -54,9 +54,9 @@ plotCubes fi = do
   createDirectoryIfMissing True vmdOutDir
   (Just vmdInput, Just vmdOutput, Just vmdError, vmdProcH) <-
     createProcess (proc (cubePlotterVMD ^. cpExePath) [ "-eofexit"
-                                                        , "-startup", (vmdOutDir ++ [pathSeparator] ++ "VMDStartup.tcl")
-                                                        , "-e", vmdOutDir ++ [pathSeparator] ++ "PlotVMD.tcl"
-                                                        ]
+                                                      , "-startup", (vmdOutDir ++ [pathSeparator] ++ "VMDStartup.tcl")
+                                                      , "-e", vmdOutDir ++ [pathSeparator] ++ "PlotVMD.tcl"
+                                                      ]
                   )
     { std_out = CreatePipe
     , std_in = CreatePipe
