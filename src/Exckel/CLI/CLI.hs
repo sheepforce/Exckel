@@ -6,10 +6,12 @@ module Exckel.CLI.CLI
 , calcOrbCubes
 , calcCDDCubes
 , doPlots
+, createSummaryDocument
 )
 where
 import           Data.Attoparsec.Text
 import qualified Data.ByteString.Char8            as BS
+import qualified Data.ByteString.Lazy.Char8       as BL
 import           Data.List
 import           Data.Maybe
 import qualified Data.Text                        as T
@@ -30,6 +32,9 @@ import           Lens.Micro.Platform
 import           System.Directory
 import           System.FilePath
 import           Text.Read
+import qualified Text.Pandoc as PD (def)
+import           Text.Pandoc                    hiding (FileInfo, def, getDataFileName)
+import Exckel.DocumentCreator
 
 -- | Entry point for the executable. Get command line arguments with defaults and call for check and
 -- | from within the check possibly for other routines.
@@ -504,3 +509,48 @@ doPlots fi = do
     Nothing     -> return $ fi ^. imageFiles
 
   return (fi & imageFiles .~ imageInfo)
+
+
+
+-- | Use all informations available to create a summary of the calculation with Pandoc.
+createSummaryDocument :: FileInfo -> [ExcState] -> IO ()
+createSummaryDocument fi es = do
+  -- Header
+  logHeader "\n----"
+  logHeader "Creating summary document:"
+
+  logMessage "Pandoc output format" $ show (fi ^. pandocInfo . pdDocType)
+  logMessage "Pandoc formatting reference document" $ show (fi ^. pandocInfo . pdRefDoc) ++ ("if \"panref.tmp\" this is the builtin default")
+  logMessage "Orbital images available" $ show (fi ^. imageFiles . orbImages . _Just)
+  logMessage "Hole images available" $ show (fi ^. imageFiles . holeImages . _Just)
+  logMessage "Electron images available" $ show (fi ^. imageFiles . electronImages . _Just)
+  logMessage "CDD images available" $ show (fi ^. imageFiles . cddImages . _Just)
+
+  let summary = excitationSummary fi es
+  case (fi ^. pandocInfo . pdDocType) of
+    DOCX  -> do
+      summaryDoc <- runIO $ do
+        writeDocx PD.def {writerReferenceDoc = fi ^. pandocInfo . pdRefDoc} summary
+      case summaryDoc of
+        Left err  -> errMessage $ "Error occured during generation of the pandoc summary:" ++ show err
+        Right doc -> do
+          logInfo "Writing document to \"summary.docx\"."
+          BL.writeFile ((fi ^. outputPrefix) ++ [pathSeparator] ++ "summary.docx") doc
+    ODT   -> do
+      summaryDoc <- runIO $ do
+        odtTemplate <- getDefaultTemplate "odt"
+        writeODT PD.def {writerReferenceDoc = fi ^. pandocInfo . pdRefDoc, writerTemplate = Just odtTemplate} summary
+      case summaryDoc of
+        Left err  -> errMessage $ "Error occured during generation of the pandoc summary:" ++ show err
+        Right doc -> do
+          logInfo "Writing document to \"summary.odt\"."
+          BL.writeFile ((fi ^. outputPrefix) ++ [pathSeparator] ++ "summary.odt") doc
+    LATEX -> do
+      summaryDoc <- runIO $ do
+        texTemplate <- getDefaultTemplate "latex"
+        writeLaTeX PD.def {writerTemplate = Just texTemplate} summary
+      case summaryDoc of
+        Left err  -> errMessage $ "Error occured during generation of the pandoc summary:" ++ show err
+        Right doc -> do
+          logInfo "Writing document to \"summary.tex\". You may compile this using xelatex."
+          T.writeFile ((fi ^. outputPrefix) ++ [pathSeparator] ++ "summary.tex") doc

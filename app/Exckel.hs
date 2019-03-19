@@ -2,7 +2,6 @@ import qualified Data.ByteString.Char8  as BS
 import           Exckel.CLI.CLI
 import           Exckel.CmdArgs
 import           Exckel.EmbedContents
-import           Exckel.Types
 import           System.Console.ANSI
 import           System.Console.CmdArgs hiding (def)
 
@@ -26,6 +25,5 @@ main = do
   fileInfoUpdatedCDDCubes <- calcCDDCubes fileInfoUpdatedOrbCubes excitedStatesAnalysis
   -- Render all cubes to images
   fileInfoWithImages <- doPlots fileInfoUpdatedCDDCubes
-
-
-  putStrLn "Hey sheep"
+  -- Create the summary document
+  createSummaryDocument fileInfoWithImages excitedStatesAnalysis
