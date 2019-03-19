@@ -41,11 +41,13 @@ module Exckel.Types
 , cpStartUp
 , CubeFiles(..)
 , orbCubes
+, natOrbCubes
 , cddCubes
 , electronCubes
 , holeCubes
 , ImageFiles(..)
 , orbImages
+, natOrbImages
 , cddImages
 , electronImages
 , holeImages
@@ -222,7 +224,9 @@ makeLenses ''CubeFiles
 
 -- | If images are already available, store all the filepaths here. Naming conventions of other
 -- | functions still apply. See CubeFiles data type for more information. Depending on the chosen
--- | ImageFormat the suffix might change.
+-- | ImageFormat the suffix might change. The filepaths are tupled with the orbital or excited state
+-- | Number. In case of the natural orbitals, they are tuples with excited state number, orbital
+-- | number and filepath in this order.
 data ImageFiles = ImageFiles
   { _orbImages      :: Maybe [(Int, FilePath)]
   , _natOrbImages   :: Maybe [(Int, Int, FilePath)]
