@@ -7,15 +7,15 @@ module Exckel.CLI.SharedFunctions
 , findAllImages
 , findAllMRCCMoldenNO
 ) where
+import           Control.Monad
 import           Data.Char
+import           Data.List.Split
 import           Exckel.Types
 import           System.Console.ANSI
 import           System.Directory
 import           System.FilePath
 import           System.IO
 import           Text.Printf
-import Control.Monad
-import Data.List.Split
 
 -- | Put an information to the screen, which displays a value
 logMessage :: String -> String -> IO ()
