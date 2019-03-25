@@ -60,21 +60,6 @@ initialise args = do
           errMessage "Log file not found."
           error "Log file not found. Cannot continue."
 
-  -- Define the wavefunction file path.
-  waveFunctionFile' <- case (wf args) of
-    Nothing                      -> do
-      errMessage "You have not specified a wavefunction file of your QC calculation, but this is mandatory."
-      error "Wavefunction file not specified. Cannot continue."
-    Just waveFunctionFilePathRel -> do
-      hasWavefunctionFile <- doesFileExist waveFunctionFilePathRel
-      if hasWavefunctionFile
-        then do
-          waveFunctionFilePathAbs <- makeAbsolute waveFunctionFilePathRel
-          return waveFunctionFilePathAbs
-        else do
-          errMessage "Wavefunction file not found, but wavefunction file is necessary."
-          error "Wavefunction file not found."
-
   -- Get the type of the calculation for the parser
   let calcType' = case (calctype args) of
         "rc-adc2" -> ADC
@@ -135,6 +120,46 @@ initialise args = do
       { _spERange     = spERange'
       , _spBroadening = spBroadening'
       }
+
+  -- Define the wavefunction file path.
+  waveFunctionFile' <- case (wf args) of
+    Nothing                      -> do
+      errMessage "You have not specified a wavefunction file or wavefunction prefix name of your QC calculation, but this is mandatory."
+      error "Wavefunction file not specified. Cannot continue."
+    Just waveFunctionFilePathRel -> do
+      case calcSoftware' of
+        MRCC
+          { _calcType = ADC
+              { _order = 2
+              , _redCost = True
+              }
+          } -> do
+            labeledWfFiles <- findAllMRCCMoldenNO outputPrefix'
+            return $ Right labeledWfFiles
+        _   -> do
+          hasWavefunctionFile <- doesFileExist waveFunctionFilePathRel
+          if hasWavefunctionFile
+            then do
+              waveFunctionFilePathAbs <- makeAbsolute waveFunctionFilePathRel
+              return $ Left $ waveFunctionFilePathAbs
+            else do
+              errMessage "Wavefunction file not found, but wavefunction file is necessary."
+              error "Wavefunction file not found."
+  {-
+  waveFunctionFile' <- case (wf args) of
+    Nothing                      -> do
+      errMessage "You have not specified a wavefunction file of your QC calculation, but this is mandatory."
+      error "Wavefunction file not specified. Cannot continue."
+    Just waveFunctionFilePathRel -> do
+      hasWavefunctionFile <- doesFileExist waveFunctionFilePathRel
+      if hasWavefunctionFile
+        then do
+          waveFunctionFilePathAbs <- makeAbsolute waveFunctionFilePathRel
+          return waveFunctionFilePathAbs
+        else do
+          errMessage "Wavefunction file not found, but wavefunction file is necessary."
+          error "Wavefunction file not found."
+  -}
 
   -- Define the cube calculation program for orbitals
   orbGenerator' <- if (nocalcorbs args)
@@ -262,7 +287,13 @@ initialise args = do
         , _stateSelection   = stateSelection'
         }
   logMessage "Excited state log file"                     (infitialFileInfo ^. logFile)
-  logMessage "waveFunctionFile file"                      (infitialFileInfo ^. waveFunctionFile)
+  logMessage "Wavefunction file" $ case (infitialFileInfo ^. waveFunctionFile) of
+    Left singleFile     -> singleFile
+    Right multipleFiles ->
+      "With prefix \"" ++
+      (fromMaybe "" $ wf args) ++
+      "\" wavefunctions for following excited states were found: " ++
+      (show . map fst $ multipleFiles)
   logMessage "QC calculation"                             (show $ infitialFileInfo ^. calcSoftware)
   logMessage "Output directory and search path for files" (infitialFileInfo ^. outputPrefix)
   return infitialFileInfo
@@ -415,7 +446,7 @@ calcOrbCubes fi es = do
     Just MultiWFNOrb {} -> do
       logMessage "Orbital calculator"    (fi ^. orbGenerator . _Just . ogExePath)
       logInfo "Calculating orbitals now. See \"MultiWFN.out\" and \"MultiWFN.err\"."
-      CG.MWFN.calculateOrbs fi orbitalsToPlot
+      CG.MWFN.calculateOrbs fi excitedStatesForOrbs
       allCubes <- findAllCubes (fi ^. outputPrefix)
       return allCubes
 
@@ -462,7 +493,7 @@ calcCDDCubes fi es = do
       logMessage "CDD calculator" (show $ fi ^. cddGenerator . _Just . cddExePath)
       logMessage "Calculating CDDs for states" (show $ map (^. nState) es)
       logInfo "Calculating CDDs. See \"MultiWFN.out\" and \"MultiWFN.err\""
-      CG.MWFN.calculateCDDs fi (map (^. nState) es)
+      CG.MWFN.calculateCDDs fi es
       allCubes <- findAllCubes (fi ^. outputPrefix)
       return allCubes
     Nothing             -> return $ fi ^. cubeFiles

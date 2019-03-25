@@ -318,11 +318,13 @@ data StateSelection = StateSelection
 makeLenses ''StateSelection
 
 -- | FilePaths to files, given in absolute paths! Shall be expanded to absolute paths if only
--- | specified as relative path during program execution.
+-- | specified as relative path during program execution. The waveFunction file is either a single
+-- | file (fchk, molden), or multiple files, that are state specific and tagged with their state
+-- | number
 data FileInfo = FileInfo
   { _logFile          :: FilePath
   , _calcSoftware     :: CalcSoftware
-  , _waveFunctionFile :: FilePath
+  , _waveFunctionFile :: Either FilePath [(Int, FilePath)]
   , _orbGenerator     :: Maybe OrbGenerator
   , _cddGenerator     :: Maybe CDDGenerator
   , _cubePlotter      :: Maybe CubePlotter
