@@ -166,21 +166,21 @@ calculateCDDsFromFile fi wfFile esN = do
     hSetBuffering mwfnLogFile LineBuffering
     hSetBuffering mwfnErrFile LineBuffering
 
-    hPutStrLn mwfnInput "18"  -- Electron excitation analysis
-    hPutStrLn mwfnInput "1"   -- Analyze and visualize hole-electron distribution, ...
+    hPutStrLn mwfnInput "18"     -- Electron excitation analysis
+    hPutStrLn mwfnInput "1"      -- Analyze and visualize hole-electron distribution, ...
     hPutStrLn mwfnInput $ fi ^. logFile
     hPutStrLn mwfnInput $ show n -- excited state to analyse
-    hPutStrLn mwfnInput "1"   -- Visualize and analyze hole, electron and transition density ...
-    hPutStrLn mwfnInput "3"   -- High quality grid
-    hPutStrLn mwfnInput "10"  -- Output cube file of hole distribution to current folder
-    hPutStrLn mwfnInput "1"   -- Total (local term + cross term)
-    hPutStrLn mwfnInput "11"  -- Output cube file of electron distribution to current folder
-    hPutStrLn mwfnInput "1"   -- Total (local term + cross term)
-    hPutStrLn mwfnInput "15"  -- Output cube file of charge density difference to current folder
-    hPutStrLn mwfnInput "0"   -- Return
-    hPutStrLn mwfnInput "0"   -- Return
-    hPutStrLn mwfnInput "0"   -- Return
-    hPutStrLn mwfnInput "-10" -- hidden option to exit gracefully in the main menu
+    hPutStrLn mwfnInput "1"      -- Visualize and analyze hole, electron and transition density ...
+    hPutStrLn mwfnInput "3"      -- High quality grid
+    hPutStrLn mwfnInput "10"     -- Output cube file of hole distribution to current folder
+    hPutStrLn mwfnInput "1"      -- Total (local term + cross term)
+    hPutStrLn mwfnInput "11"     -- Output cube file of electron distribution to current folder
+    hPutStrLn mwfnInput "1"      -- Total (local term + cross term)
+    hPutStrLn mwfnInput "15"     -- Output cube file of charge density difference to current folder
+    hPutStrLn mwfnInput "0"      -- Return
+    hPutStrLn mwfnInput "0"      -- Return
+    hPutStrLn mwfnInput "0"      -- Return
+    hPutStrLn mwfnInput "-10"    -- hidden option to exit gracefully in the main menu
 
     mwfnLog <- hGetContents mwfnOutput
     mwfnErr <- hGetContents mwfnError
