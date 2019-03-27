@@ -107,14 +107,26 @@ findAllImages searchPath = do
 -- | excited state for which they are valid). It will also sanitise the filenames and make a copy
 findAllMRCCMoldenNO :: FilePath -> IO [(Int, FilePath)]
 findAllMRCCMoldenNO outdir = do
+  dirFilesInit <- (map takeFileName) <$> listDirectory outdir
+  mapM_ (\f -> do
+    isLink <- pathIsSymbolicLink f
+    let hasMoldenExtension = if (takeExtension f) /= ".molden"
+          then False
+          else True
+    if isLink || hasMoldenExtension
+      then removeFile f
+      else return ()
+    ) dirFilesInit
   dirFiles <- (map takeFileName) <$> listDirectory outdir
+
   let matchingWFFiles = filter (\f -> prefix == (take prefixLength f)) dirFiles
       matchingWFFilesAbs = map (outdir </>) matchingWFFiles
-      stateNumbers = map ((read :: String -> Int) . takeExtension) $ matchingWFFiles
-      saneWFFileNames = map (++ ".molden") matchingWFFiles
-      saneWFFileNamesAbs = map (outdir </>) saneWFFileNames
+  mapM_ print $ map (drop 1 . takeExtension) matchingWFFilesAbs
+  let stateNumbers = map ((read :: String -> Int) . drop 1 . takeExtension) $ matchingWFFilesAbs
+      saneWFFileNamesAbs = map (++ ".molden") matchingWFFilesAbs
       result = zip stateNumbers saneWFFileNamesAbs
   zipWithM_ createFileLink matchingWFFilesAbs saneWFFileNamesAbs
+  mapM_ print result
   return result
   where
     prefix = "MOLDEN_NO."
