@@ -121,12 +121,10 @@ findAllMRCCMoldenNO outdir = do
 
   let matchingWFFiles = filter (\f -> prefix == (take prefixLength f)) dirFiles
       matchingWFFilesAbs = map (outdir </>) matchingWFFiles
-  mapM_ print $ map (drop 1 . takeExtension) matchingWFFilesAbs
-  let stateNumbers = map ((read :: String -> Int) . drop 1 . takeExtension) $ matchingWFFilesAbs
+      stateNumbers = map ((read :: String -> Int) . drop 1 . takeExtension) $ matchingWFFilesAbs
       saneWFFileNamesAbs = map (++ ".molden") matchingWFFilesAbs
       result = zip stateNumbers saneWFFileNamesAbs
   zipWithM_ createFileLink matchingWFFilesAbs saneWFFileNamesAbs
-  mapM_ print result
   return result
   where
     prefix = "MOLDEN_NO."
