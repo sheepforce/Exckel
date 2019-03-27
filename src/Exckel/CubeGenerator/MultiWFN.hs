@@ -10,6 +10,7 @@ import           Control.Monad
 import           Data.List
 import           Data.List.Split
 import           Data.Maybe
+import           Exckel.CLI.SharedFunctions
 import           Exckel.ExcUtils
 import           Exckel.Types
 import           Lens.Micro.Platform
@@ -31,7 +32,10 @@ assignWFFileToState lWFs es =
   zipWith (\(i, path) s -> if i == (s ^. nState)
     then Just (s, path)
     else Nothing
-  ) lWFs es
+  ) sortedFiles sortedStates
+  where
+    sortedStates = sortOn (\s -> s ^. nState) es
+    sortedFiles = sortOn fst lWFs
 
 -- | Calculate orbitals from a single or multiple wavefunction files. If a single wavefunction file
 -- | is given, the results are assumed to be orbitals, but if multiple wavefunction files for
@@ -54,6 +58,7 @@ calculateOrbs fi es = do
       let assignedStates = assignWFFileToState multiWFFiles es
       mapM_ (\(state, path) -> do
           let orbInds = orbitalsToPlot [state]
+          logInfo $ "State " ++ show (state ^. nState) ++ " with orbitals " ++ show orbInds
           calculateOrbsFromFile fi path orbInds
           let oldCubeNames =
                 map (mwfnOutDir </>) $
