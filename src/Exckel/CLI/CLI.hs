@@ -471,6 +471,7 @@ calcCDDCubes fi es = do
       logMessage "CDD calculator" "REgular Parallel Arrays (neglecting all cross terms!)"
       logMessage "Calculating CDDs for states" (show $ map (^. nState) es)
       logMessage "Orbital cubes available" (show $ map takeFileName <$> (fi ^. cubeFiles . orbCubes))
+      logMessage "Natural orbital cubes available" (show $ map takeFileName <$> (fi ^. cubeFiles . natOrbCubes))
       logInfo "Calculating CDDs in parallel using REPA. See \"REPA.log\""
       mapM_ (\s -> do
         cddTriple <- CG.Exckel.calculateCDD fi s
