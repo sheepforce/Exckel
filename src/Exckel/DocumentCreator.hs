@@ -48,15 +48,15 @@ excitationSummary fi es =
        , header 1 "electron"
        ]
        -- generated summary for excitations
-       (tableContents es)
+       (tableContents wfes)
     <>
     table
       "Orbital"                        -- caption
       (replicate 5 (AlignCenter, 0.2)) -- 5 columns
       []                               -- empty headers
       ( orbContents                    -- pictures of the orbitals
-         ( (^. nBasisFunctions) . head $ es)
-         ( case ((^. wfType) . head $ es) of
+         ( (^. nBasisFunctions) . head $ wfes)
+         ( case ((^. wfType) . head $ wfes) of
              Nothing                  -> False
              Just ClosedShell         -> False
              Just OpenShell           -> True
@@ -142,8 +142,13 @@ excitationSummary fi es =
         orbString o =
           show (fst o) ++
           spinString (snd o)
-
-
+    -- | Apply weight filter before printing here again.
+    ciDeterminantsByWeight =
+          map (V.filter (\d -> d ^. weight >= (fi ^. stateSelection . ssWeightFilter))) $
+          map (^. ciWavefunction) es
+    -- | Update excited states with reduced number of CI excitations. (weight filtered excited states)
+    wfes =
+      zipWith (\e d -> e & ciWavefunction .~ d) es ciDeterminantsByWeight
     -- CI wavefunction written by individual CI determinants (one per line), each line is a CI
     -- determinant
     manyCIEntry :: V.Vector CIDeterminant -> Blocks
