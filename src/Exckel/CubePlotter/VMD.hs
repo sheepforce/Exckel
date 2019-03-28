@@ -131,6 +131,7 @@ plotCubes fi = do
     tachyonInputs =
       (map ((++ ".dat") . T.unpack) . getBaseNames . concat) $
       [ fromMaybe [] $ fi ^. cubeFiles . orbCubes
+      , fromMaybe [] $ fi ^. cubeFiles . natOrbCubes
       , fromMaybe [] $ fi ^. cubeFiles . cddCubes
       , fromMaybe [] $ fi ^. cubeFiles .electronCubes
       , fromMaybe [] $ fi ^. cubeFiles . holeCubes
@@ -159,13 +160,14 @@ substitueTemplate fi = do
 
   -- get basenames of all cubes
   let orbitalBaseNames = toTclList $ getBaseNames <$> (fi ^. cubeFiles . orbCubes)
+      natOrbBaseNames = toTclList $ getBaseNames <$> (fi ^. cubeFiles . natOrbCubes)
       cddBaseNames = toTclList $ getBaseNames <$> (fi ^. cubeFiles . cddCubes)
       electronBaseNames = toTclList $ getBaseNames <$> (fi ^. cubeFiles . electronCubes)
       holeBaseNames = toTclList $ getBaseNames <$> (fi ^. cubeFiles . holeCubes)
 
   -- key value map for substitutions by Ginger as Map
   let context = H.fromList
-        [ ("orbs", orbitalBaseNames)
+        [ ("orbs", orbitalBaseNames `T.append` natOrbBaseNames)
         , ("cdddens", cddBaseNames `T.append` electronBaseNames `T.append` holeBaseNames)
         , ("viewpoint", case viewpoint of
              Right v -> v `T.append` (T.unlines ["", "unset viewplist"])

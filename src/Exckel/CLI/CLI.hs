@@ -22,6 +22,7 @@ import           Exckel.CmdArgs
 import qualified Exckel.CubeGenerator.Exckel      as CG.Exckel
 import qualified Exckel.CubeGenerator.MultiWFN    as CG.MWFN
 import qualified Exckel.CubePlotter.VMD           as CP.VMD
+import           Exckel.DocumentCreator
 import           Exckel.EmbedContents
 import           Exckel.ExcUtils
 import           Exckel.Parser                    hiding (vmdState)
@@ -31,10 +32,10 @@ import           Exckel.Types
 import           Lens.Micro.Platform
 import           System.Directory
 import           System.FilePath
+import           Text.Pandoc                      hiding (FileInfo, def,
+                                                   getDataFileName)
+import qualified Text.Pandoc                      as PD (def)
 import           Text.Read
-import qualified Text.Pandoc as PD (def)
-import           Text.Pandoc                    hiding (FileInfo, def, getDataFileName)
-import Exckel.DocumentCreator
 
 -- | Entry point for the executable. Get command line arguments with defaults and call for check and
 -- | from within the check possibly for other routines.
@@ -58,21 +59,6 @@ initialise args = do
         else do
           errMessage "Log file not found."
           error "Log file not found. Cannot continue."
-
-  -- Define the wavefunction file path.
-  waveFunctionFile' <- case (wf args) of
-    Nothing                      -> do
-      errMessage "You have not specified a wavefunction file of your QC calculation, but this is mandatory."
-      error "Wavefunction file not specified. Cannot continue."
-    Just waveFunctionFilePathRel -> do
-      hasWavefunctionFile <- doesFileExist waveFunctionFilePathRel
-      if hasWavefunctionFile
-        then do
-          waveFunctionFilePathAbs <- makeAbsolute waveFunctionFilePathRel
-          return waveFunctionFilePathAbs
-        else do
-          errMessage "Wavefunction file not found, but wavefunction file is necessary."
-          error "Wavefunction file not found."
 
   -- Get the type of the calculation for the parser
   let calcType' = case (calctype args) of
@@ -134,6 +120,46 @@ initialise args = do
       { _spERange     = spERange'
       , _spBroadening = spBroadening'
       }
+
+  -- Define the wavefunction file path.
+  waveFunctionFile' <- case (wf args) of
+    Nothing                      -> do
+      errMessage "You have not specified a wavefunction file or wavefunction prefix name of your QC calculation, but this is mandatory."
+      error "Wavefunction file not specified. Cannot continue."
+    Just waveFunctionFilePathRel -> do
+      case calcSoftware' of
+        MRCC
+          { _calcType = ADC
+              { _order = 2
+              , _redCost = True
+              }
+          } -> do
+            labeledWfFiles <- findAllMRCCMoldenNO outputPrefix'
+            return $ Right labeledWfFiles
+        _   -> do
+          hasWavefunctionFile <- doesFileExist waveFunctionFilePathRel
+          if hasWavefunctionFile
+            then do
+              waveFunctionFilePathAbs <- makeAbsolute waveFunctionFilePathRel
+              return $ Left $ waveFunctionFilePathAbs
+            else do
+              errMessage "Wavefunction file not found, but wavefunction file is necessary."
+              error "Wavefunction file not found."
+  {-
+  waveFunctionFile' <- case (wf args) of
+    Nothing                      -> do
+      errMessage "You have not specified a wavefunction file of your QC calculation, but this is mandatory."
+      error "Wavefunction file not specified. Cannot continue."
+    Just waveFunctionFilePathRel -> do
+      hasWavefunctionFile <- doesFileExist waveFunctionFilePathRel
+      if hasWavefunctionFile
+        then do
+          waveFunctionFilePathAbs <- makeAbsolute waveFunctionFilePathRel
+          return waveFunctionFilePathAbs
+        else do
+          errMessage "Wavefunction file not found, but wavefunction file is necessary."
+          error "Wavefunction file not found."
+  -}
 
   -- Define the cube calculation program for orbitals
   orbGenerator' <- if (nocalcorbs args)
@@ -261,7 +287,13 @@ initialise args = do
         , _stateSelection   = stateSelection'
         }
   logMessage "Excited state log file"                     (infitialFileInfo ^. logFile)
-  logMessage "waveFunctionFile file"                      (infitialFileInfo ^. waveFunctionFile)
+  logMessage "Wavefunction file" $ case (infitialFileInfo ^. waveFunctionFile) of
+    Left singleFile     -> singleFile
+    Right multipleFiles ->
+      "With prefix \"" ++
+      (fromMaybe "" $ wf args) ++
+      "\" wavefunctions for following excited states were found: " ++
+      (show . map fst $ multipleFiles)
   logMessage "QC calculation"                             (show $ infitialFileInfo ^. calcSoftware)
   logMessage "Output directory and search path for files" (infitialFileInfo ^. outputPrefix)
   return infitialFileInfo
@@ -414,7 +446,7 @@ calcOrbCubes fi es = do
     Just MultiWFNOrb {} -> do
       logMessage "Orbital calculator"    (fi ^. orbGenerator . _Just . ogExePath)
       logInfo "Calculating orbitals now. See \"MultiWFN.out\" and \"MultiWFN.err\"."
-      CG.MWFN.calculateOrbs fi orbitalsToPlot
+      CG.MWFN.calculateOrbs fi excitedStatesForOrbs
       allCubes <- findAllCubes (fi ^. outputPrefix)
       return allCubes
 
@@ -439,6 +471,7 @@ calcCDDCubes fi es = do
       logMessage "CDD calculator" "REgular Parallel Arrays (neglecting all cross terms!)"
       logMessage "Calculating CDDs for states" (show $ map (^. nState) es)
       logMessage "Orbital cubes available" (show $ map takeFileName <$> (fi ^. cubeFiles . orbCubes))
+      logMessage "Natural orbital cubes available" (show $ map takeFileName <$> (fi ^. cubeFiles . natOrbCubes))
       logInfo "Calculating CDDs in parallel using REPA. See \"REPA.log\""
       mapM_ (\s -> do
         cddTriple <- CG.Exckel.calculateCDD fi s
@@ -461,7 +494,7 @@ calcCDDCubes fi es = do
       logMessage "CDD calculator" (show $ fi ^. cddGenerator . _Just . cddExePath)
       logMessage "Calculating CDDs for states" (show $ map (^. nState) es)
       logInfo "Calculating CDDs. See \"MultiWFN.out\" and \"MultiWFN.err\""
-      CG.MWFN.calculateCDDs fi (map (^. nState) es)
+      CG.MWFN.calculateCDDs fi es
       allCubes <- findAllCubes (fi ^. outputPrefix)
       return allCubes
     Nothing             -> return $ fi ^. cubeFiles
@@ -487,10 +520,10 @@ doPlots fi = do
   imageInfo <- case (fi ^. cubePlotter) of
     Just VMD {} -> do
       -- Informations about the current settings
-      logMessage "Orbital cubes to plot" $ show $ fi ^. cubeFiles . orbCubes . _Just
-      logMessage "Hole density cubes to plot" $ show $ fi ^. cubeFiles . holeCubes . _Just
-      logMessage "Electron density cubes to plot" $ show $ fi ^. cubeFiles . electronCubes . _Just
-      logMessage "CDD cubes to plot" $ show $ fi ^. cubeFiles . cddCubes . _Just
+      logMessage "Orbital cubes to plot" $ show $ map takeFileName $ fi ^. cubeFiles . orbCubes . _Just
+      logMessage "Hole density cubes to plot" $ show $ map takeFileName $ fi ^. cubeFiles . holeCubes . _Just
+      logMessage "Electron density cubes to plot" $ show $ map takeFileName $ fi ^. cubeFiles . electronCubes . _Just
+      logMessage "CDD cubes to plot" $ show $ map takeFileName $ fi ^. cubeFiles . cddCubes . _Just
       logMessage "Cube plotter" $ fi ^. cubePlotter . _Just . cpExePath
       logMessage "Cube renderer" $ fi ^. cubePlotter . _Just . cpRenderer . rExePath
       logMessage "VMD startup file with general settings" $ fromMaybe
@@ -521,10 +554,10 @@ createSummaryDocument fi es = do
 
   logMessage "Pandoc output format" $ show (fi ^. pandocInfo . pdDocType)
   logMessage "Pandoc formatting reference document" $ show (fi ^. pandocInfo . pdRefDoc) ++ ("if \"panref.tmp\" this is the builtin default")
-  logMessage "Orbital images available" $ show (fi ^. imageFiles . orbImages . _Just)
-  logMessage "Hole images available" $ show (fi ^. imageFiles . holeImages . _Just)
-  logMessage "Electron images available" $ show (fi ^. imageFiles . electronImages . _Just)
-  logMessage "CDD images available" $ show (fi ^. imageFiles . cddImages . _Just)
+  logMessage "Orbital images available" $ show $ map (takeFileName . snd) (fi ^. imageFiles . orbImages . _Just)
+  logMessage "Hole images available" $ show $ map (takeFileName . snd) (fi ^. imageFiles . holeImages . _Just)
+  logMessage "Electron images available" $ show $ map (takeFileName . snd) (fi ^. imageFiles . electronImages . _Just)
+  logMessage "CDD images available" $ show $ map (takeFileName . snd) (fi ^. imageFiles . cddImages . _Just)
 
   let summary = excitationSummary fi es
   case (fi ^. pandocInfo . pdDocType) of

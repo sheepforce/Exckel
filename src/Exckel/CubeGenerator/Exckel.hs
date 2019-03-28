@@ -92,7 +92,9 @@ calculateCDD fi eS
       -- used in the CI determinant pairs.
       T.writeFile logfile $ "Processing excited state: " `T.append` (T.pack . show $ eS ^. nState) `T.append` "\n"
       labeledOrbCubesEither <- mapM (\i -> do
-                                      cubeIRaw <- T.readFile $ (fi ^. outputPrefix) ++ [pathSeparator] ++ "orb" ++ show i ++ ".cube"
+                                      cubeIRaw <- case (fi ^. waveFunctionFile) of
+                                        Left _  -> T.readFile $ (fi ^. outputPrefix) ++ [pathSeparator] ++ "orb" ++ show i ++ ".cube"
+                                        Right _ -> T.readFile $ (fi ^. outputPrefix) ++ [pathSeparator] ++ "natorb_" ++ show (eS ^. nState) ++ "_" ++ show i ++ ".cube"
                                       let cubeI = parseOnly cube cubeIRaw
                                       T.appendFile logfile $ "Parsing orbital cube " `T.append` (T.pack . show $ i) `T.append` "\n"
                                       return (orbNumber2Orb i nMOs isOpenShell, cubeI)
@@ -195,14 +197,29 @@ calculateCDD fi eS
     -- All orbitals constructing the CI wavefunction
     requiredOrbs = sort . getOrbNumbers $ eS
     -- All orbitals FilePaths available on disk as cubes
-    availableOrbsFiles = fromMaybe [] $ fi ^. cubeFiles . orbCubes
+    availableCanOrbsFiles = (fromMaybe [] $ fi ^. cubeFiles . orbCubes)
+    availableNatOrbsFiles = (fromMaybe [] $ fi ^. cubeFiles . natOrbCubes)
     -- All orbitals by their number as written to a molden file.
-    availableOrbs =
+    availableCanOrbs =
       sort .
       map fromJust .
       filter isJust .
       map ((readMaybe :: String -> Maybe Int) . drop 3 . takeBaseName) $
-      availableOrbsFiles
+      availableCanOrbsFiles
+    availableNatOrbs =
+      sort .
+      map snd .
+      filter (\(state, _) -> state == (eS ^. nState)) .
+      map (\(a, b) -> (fromJust a, fromJust b)) .
+      filter (\(a, b) -> isJust a && isJust b) .
+      map (\fn ->
+        ( (readMaybe :: String -> Maybe Int) . (!! 1) . splitOn "_" . takeBaseName $ fn
+        , (readMaybe :: String -> Maybe Int) . (!! 2) . splitOn "_" . takeBaseName $ fn
+        )
+      ) $ availableNatOrbsFiles
+    availableOrbs = case (fi ^. waveFunctionFile) of
+      Left _  -> availableCanOrbs
+      Right _ -> availableNatOrbs
     -- Take a CI determinant and reduce to weighted orbitals that form the hole. Effectively breaks
     -- down excitations higher than singles to singles.
     reduceToSinglesHole :: CIDeterminant -> [(Double, (Int, Maybe Spin))]
