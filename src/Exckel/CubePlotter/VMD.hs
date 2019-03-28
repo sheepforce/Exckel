@@ -131,6 +131,7 @@ plotCubes fi = do
     tachyonInputs =
       (map ((++ ".dat") . T.unpack) . getBaseNames . concat) $
       [ fromMaybe [] $ fi ^. cubeFiles . orbCubes
+      , fromMaybe [] $ fi ^. cubeFiles . natOrbCubes
       , fromMaybe [] $ fi ^. cubeFiles . cddCubes
       , fromMaybe [] $ fi ^. cubeFiles .electronCubes
       , fromMaybe [] $ fi ^. cubeFiles . holeCubes
