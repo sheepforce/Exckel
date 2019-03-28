@@ -25,7 +25,59 @@ Exckel is a command line programm and can be easily called from a bash script or
 
 By calling `exckel --help`, a quick explanation of all possible keywords is provided.
 
-
+    exckelargs [OPTIONS]
+      Available command line arguments. At least "--wf" and "--exc" must be
+      specified.
+    
+    Common flags:
+         --nocalcorbs                Do not calculate cubes for orbitals.                                                                                                                                                                                                          
+         --nocalccdds                Do not calculate charge density difference                                                                                                                                                                                                    
+                                     cubes.                                                                                                                                                                                                                                        
+         --norenderimages            Do not render images from cubes.                                                                                                                                                                                                              
+      -o --outdir=DIR                Destination for all output files and                                                                                                                                                                                                          
+                                     existing cubes.                                                                                                                                                                                                                               
+         --vmd=FILE                  VMD executable. Default is first vmd                                                                                                                                                                                                          
+                                     executable found on system.                                                                                                                                                                                                                   
+         --vmdstate=FILE             VMD visualisation state file. Used to                                                                                                                                                                                                         
+                                     determine perspective.                                                                                                                                                                                                                        
+         --vmdstartup=FILE           VMD script to set up general look. If none                                                                                                                                                                                                    
+                                     is specified, it will default to your vmdrc.                                                                                                                                                                                                  
+         --vmdtemplate=FILE          VMD template script for plotting.                                                                                                                                                                                                             
+      -m --multiwfn=FILE             Multiwfn executable. Default is first                                                                                                                                                                                                         
+                                     Multiwfn executable found on system                                                                                                                                                                                                           
+         --cddcalculator=STRING      Program to use to calculate charge density                                                                                                                                                                                                    
+                                     differnces. [multiwfn | repa]                                                                                                                                                                                                                 
+      -t --tachyon=FILE              Tachyon executable. Default is first tachyon                                                                                                                                                                                                  
+                                     executable found on system                                                                                                                                                                                                                    
+         --panformat=STRING          Format of the summary to write with Pandoc.                                                                                                                                                                                                   
+                                     Any of [docx | odt | latex]                                                                                                                                                                                                                   
+         --panref=FILE               Reference docx with formatting hints.                                                                                                                                                                                                         
+         --wf=FILE                   Wavefunction file (molden or fchk).                                                                                                                                                                                                           
+         --exc=FILE                  Quantum chemistry software output file with                                                                                                                                                                                                   
+                                     excited state informations.                                                                                                                                                                                                                   
+      -i --imgres=INT,INT            Image width x heigth for plotting of cubes.                                                                                                                                                                                                   
+         --s2filter=FLOAT            Filter excited states by contributions of                                                                                                                                                                                                     
+                                     next higher spin state (applies to plotting                                                                                                                                                                                                   
+                                     and summary).
+         --foscfilter=FLOAT          Filter excited states by minimum oscillator
+                                     strength (applies only to summary document).
+         --fwhm=FLOAT                Full width at half maximum of the gaussian
+                                     function used to convolute the stick spectrum
+                                     in electron volt.
+         --weightfilter=FLOAT        Minimum weight of an excitation to write to
+                                     the summary. (default 0.01)
+         --energyfilter=FLOAT,FLOAT  Energy range (eV) of the excited states of
+                                     interest and plot range for spectrum.
+         --states=[INT]              Plot specific states and ignore all other
+                                     criteria in the summary. Give as "[a,b,c]"
+         --calcsoftware=STRING       Calculation software, that produced the
+                                     output file. [gaussian | nwchem | mrcc]
+         --calctype=STRING           Calculation type. [tddft | rc-adc2 (reduced
+                                     cost ADC(2))]
+         --spectrum=STRING           Program to plot the spectrum. [gnuplot |
+                                     spectrify]
+      -? --help                      Display help message
+      -V --version                   Print version information
 
 
 At least `--wf` and `--exc` must be set and point to your wavefunction file respective your quantum chemistry output file (with excited state information).
