@@ -34,8 +34,9 @@ assignWFFileToState lWFs es =
     else Nothing
   ) sortedFiles sortedStates
   where
+    relevantStateNumbers = map (^. nState) $ es
     sortedStates = sortOn (\s -> s ^. nState) es
-    sortedFiles = sortOn fst lWFs
+    sortedFiles = sortOn fst . filter (\file -> fst file `elem` relevantStateNumbers) $ lWFs
 
 -- | Calculate orbitals from a single or multiple wavefunction files. If a single wavefunction file
 -- | is given, the results are assumed to be orbitals, but if multiple wavefunction files for
