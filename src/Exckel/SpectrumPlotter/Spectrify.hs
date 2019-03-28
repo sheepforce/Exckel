@@ -44,11 +44,13 @@ plotSpectrum fi es fes = do
                          , "#ff5000"
                          , "--no-plot"
                          , "--top-eV"
-                         , "--spectrum-file-extension"
-                         , "png"
-                         , "--hwhh"
+                         , "--spectrum-out"
+                         , "Spectrum.png"
+                         , "--half-width-at-half-maximum"
                          , show (σ/2.0)
                          , "--peak-labels"
+                         , "--dots-per-inch"
+                         , "300"
                          ]
                   )
     { std_out = CreatePipe
@@ -78,7 +80,7 @@ plotSpectrum fi es fes = do
   _ <- waitForProcess spectrifyProcH
   cleanupProcess (Just spectrifyInput, Just spectrifyOutput, Just spectrifyError, spectrifyProcH)
 
-  renameFile (outDir ++ [pathSeparator] ++ "spectra.png") (outDir ++ [pathSeparator] ++ "Spectrum.png")
+  -- renameFile (outDir ++ [pathSeparator] ++ "spectra.png") (outDir ++ [pathSeparator] ++ "Spectrum.png")
   where
     outDir = fi ^. outputPrefix
     fwhm = fi ^. spectrumPlotter . spBroadening
