@@ -88,14 +88,29 @@ excitationSummary fi es =
                      Just (nState', imagePath) -> para $ imageWith ("", ["align-center"], [("width", "2.2cm")]) imagePath "" (text . ("electron " ++) . show $ nState')
                  ]
           ) excStates
-    -- create a table of all orbital pictures
+    -- create a table of all (natural) orbital pictures
     orbContents :: Int -> Bool -> [[Blocks]]
-    orbContents nBasFun isOpenShell =
-      chunksOf 5 .
-      map (\i -> para (imageWith ("", ["align-center"], [("width", "2.5cm")]) (snd i) (show . fst $ i) (text . show . fst $ i))
-                 <>
-                 para (text (orbNumberToSpinOrbNumber nBasFun isOpenShell . fst $ i))
-          ) . fromMaybe [] $ fi ^. imageFiles . orbImages
+    orbContents nBasFun isOpenShell = case (fi ^. waveFunctionFile) of
+      Left _  ->
+        chunksOf 5 .
+        map (\i -> para (imageWith ("", ["align-center"], [("width", "2.5cm")]) (snd i) (show . fst $ i) (text . show . fst $ i))
+                   <>
+                   para (text (orbNumberToSpinOrbNumber nBasFun isOpenShell . fst $ i))
+            ) . fromMaybe [] $ fi ^. imageFiles . orbImages
+      Right _ ->
+        chunksOf 5 .
+        map (\i -> para (imageWith
+                          ("", ["align-center"], [("width", "2.5cm")])
+                          (i ^. _3)
+                          ("Exc. " ++ (show $ i ^. _1) ++ " " ++ "Orb. " ++ (show $ i ^. _2))
+                          (text $ "Exc. " ++ (show $ i ^. _1) ++ " " ++ "Orb. " ++ (show $ i ^. _2))
+                        )
+                   <>
+                   para (text $
+                           "Exc. " ++ (show $ i ^. _1) ++ "\n" ++
+                           "Orb. " ++ (orbNumberToSpinOrbNumber nBasFun isOpenShell . (^. _2) $ i)
+                        )
+            ) . fromMaybe [] $ fi ^. imageFiles . natOrbImages
     -- fill single line in a transition block, which constructs an CI determinant (CIS has single
     -- pair per line, CID has two pairs per line and so on)
     ciEntry :: CIDeterminant -> String
