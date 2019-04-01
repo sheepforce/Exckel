@@ -36,7 +36,7 @@ createDataFiles fi es fes =
     peaksFiltredLabeled = zip3 peaksFilteredEnergy peaksFilteredFOsc peaksFilteredlabels
 
 makeTable2 :: PrintfArg a => [(a, a)] -> T.Text
-makeTable2 spec = T.pack $ concatMap (\(a, b) -> printf "%8.4F    %8.4F\n" a b) spec
+makeTable2 spec = T.pack $ concatMap (\(a, b) -> printf "%12.8F    %12.8F\n" a b) spec
 
 makeTable3 :: (PrintfArg a, PrintfArg b) => [(a, a, b)] -> T.Text
-makeTable3 spec = T.pack $ concatMap (\(a, b, c) -> printf "%8.4F    %8.4F    %3d\n" a b c) spec
+makeTable3 spec = T.pack $ concatMap (\(a, b, c) -> printf "%12.8F    %12.8F    %3d\n" a b c) spec
