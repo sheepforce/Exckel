@@ -466,38 +466,42 @@ calcCDDCubes fi es = do
     Nothing -> "no"
     Just _  -> "yes"
 
-  cubeInfo <- case (fi ^. cddGenerator) of
+  -- Update the file info about available cubes
+  existingCubes <- findAllCubes (fi ^. outputPrefix)
+  let fiWithCubes = fi & cubeFiles .~ existingCubes
+
+  cubeInfo <- case (fiWithCubes ^. cddGenerator) of
     Just REPA {}        -> do
       logMessage "CDD calculator" "REgular Parallel Arrays (neglecting all cross terms!)"
       logMessage "Calculating CDDs for states" (show $ map (^. nState) es)
-      logMessage "Orbital cubes available" (show $ map takeFileName <$> (fi ^. cubeFiles . orbCubes))
-      logMessage "Natural orbital cubes available" (show $ map takeFileName <$> (fi ^. cubeFiles . natOrbCubes))
+      logMessage "Orbital cubes available" (show $ map takeFileName <$> (fiWithCubes ^. cubeFiles . orbCubes))
+      logMessage "Natural orbital cubes available" (show $ map takeFileName <$> (fiWithCubes ^. cubeFiles . natOrbCubes))
       logInfo "Calculating CDDs in parallel using REPA. See \"REPA.log\""
       mapM_ (\s -> do
-        cddTriple <- CG.Exckel.calculateCDD fi s
+        cddTriple <- CG.Exckel.calculateCDD fiWithCubes s
         case cddTriple of
           Left e               -> errMessage e
           Right (i, (h, e, d)) -> do
             T.writeFile
-              ((fi ^. outputPrefix) ++ [pathSeparator] ++ "hole" ++ show i ++ ".cube")
+              ((fiWithCubes ^. outputPrefix) ++ [pathSeparator] ++ "hole" ++ show i ++ ".cube")
               (CG.Exckel.writeCube h)
             T.writeFile
-              ((fi ^. outputPrefix) ++ [pathSeparator] ++ "electron" ++ show i ++ ".cube")
+              ((fiWithCubes ^. outputPrefix) ++ [pathSeparator] ++ "electron" ++ show i ++ ".cube")
               (CG.Exckel.writeCube e)
             T.writeFile
-              ((fi ^. outputPrefix) ++ [pathSeparator] ++ "CDD" ++ show i ++ ".cube")
+              ((fiWithCubes ^. outputPrefix) ++ [pathSeparator] ++ "CDD" ++ show i ++ ".cube")
               (CG.Exckel.writeCube d)
         ) es
-      allCubes <- findAllCubes (fi ^. outputPrefix)
+      allCubes <- findAllCubes (fiWithCubes ^. outputPrefix)
       return allCubes
     Just MultiWFNCDD {} -> do
-      logMessage "CDD calculator" (show $ fi ^. cddGenerator . _Just . cddExePath)
+      logMessage "CDD calculator" (show $ fiWithCubes ^. cddGenerator . _Just . cddExePath)
       logMessage "Calculating CDDs for states" (show $ map (^. nState) es)
       logInfo "Calculating CDDs. See \"MultiWFN.out\" and \"MultiWFN.err\""
-      CG.MWFN.calculateCDDs fi es
-      allCubes <- findAllCubes (fi ^. outputPrefix)
+      CG.MWFN.calculateCDDs fiWithCubes es
+      allCubes <- findAllCubes (fiWithCubes ^. outputPrefix)
       return allCubes
-    Nothing             -> return $ fi ^. cubeFiles
+    Nothing             -> return $ fiWithCubes ^. cubeFiles
 
   return $ fi
     & cubeFiles . holeCubes     .~ (cubeInfo ^. holeCubes)
@@ -517,31 +521,35 @@ doPlots fi = do
     Nothing -> "no"
     Just _  -> "yes"
 
-  imageInfo <- case (fi ^. cubePlotter) of
+  -- Update the file info about available cubes
+  existingCubes <- findAllCubes (fi ^. outputPrefix)
+  let fiWithCubes = fi & cubeFiles .~ existingCubes
+
+  imageInfo <- case (fiWithCubes ^. cubePlotter) of
     Just VMD {} -> do
       -- Informations about the current settings
-      logMessage "Orbital cubes to plot" $ show $ map takeFileName $ fi ^. cubeFiles . orbCubes . _Just
-      logMessage "Hole density cubes to plot" $ show $ map takeFileName $ fi ^. cubeFiles . holeCubes . _Just
-      logMessage "Electron density cubes to plot" $ show $ map takeFileName $ fi ^. cubeFiles . electronCubes . _Just
-      logMessage "CDD cubes to plot" $ show $ map takeFileName $ fi ^. cubeFiles . cddCubes . _Just
-      logMessage "Cube plotter" $ fi ^. cubePlotter . _Just . cpExePath
-      logMessage "Cube renderer" $ fi ^. cubePlotter . _Just . cpRenderer . rExePath
+      logMessage "Orbital cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . orbCubes . _Just
+      logMessage "Hole density cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . holeCubes . _Just
+      logMessage "Electron density cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . electronCubes . _Just
+      logMessage "CDD cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . cddCubes . _Just
+      logMessage "Cube plotter" $ fiWithCubes ^. cubePlotter . _Just . cpExePath
+      logMessage "Cube renderer" $ fiWithCubes ^. cubePlotter . _Just . cpRenderer . rExePath
       logMessage "VMD startup file with general settings" $ fromMaybe
         "/ (will try to use your \".vmdrc\")"
-        (fi ^. cubePlotter . _Just . cpStartUp)
+        (fiWithCubes ^. cubePlotter . _Just . cpStartUp)
       logMessage "VMD state file for perspective" $ fromMaybe
         "/ (will use default perspective)"
-        (fi ^. cubePlotter . _Just . cpStateFile)
-      let unwrappedRenderer = fromJust $ fi ^. cubePlotter
+        (fiWithCubes ^. cubePlotter . _Just . cpStateFile)
+      let unwrappedRenderer = fromJust $ fiWithCubes ^. cubePlotter
       logMessage "Rendering resolution" $ show (unwrappedRenderer ^. cpRenderer . rResolution)
       logMessage "Rendering image format" $ show (unwrappedRenderer ^. cpRenderer . rImageFormat)
       logInfo "Calling VMD and Tachyon. See \"VMD.out\", \"VMD.err\", \"Tachyon.out\" and \"Tachyon.err\""
       CP.VMD.plotCubes fi
-      allImages <- findAllImages (fi ^. outputPrefix)
+      allImages <- findAllImages (fiWithCubes ^. outputPrefix)
       return allImages
-    Nothing     -> return $ fi ^. imageFiles
+    Nothing     -> return $ fiWithCubes ^. imageFiles
 
-  return (fi & imageFiles .~ imageInfo)
+  return (fiWithCubes & imageFiles .~ imageInfo)
 
 
 
