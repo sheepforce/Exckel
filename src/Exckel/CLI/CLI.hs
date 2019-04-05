@@ -529,6 +529,7 @@ doPlots fi = do
     Just VMD {} -> do
       -- Informations about the current settings
       logMessage "Orbital cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . orbCubes . _Just
+      logMessage "Natural orbital cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . natOrbCubes . _Just
       logMessage "Hole density cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . holeCubes . _Just
       logMessage "Electron density cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . electronCubes . _Just
       logMessage "CDD cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . cddCubes . _Just
@@ -544,7 +545,7 @@ doPlots fi = do
       logMessage "Rendering resolution" $ show (unwrappedRenderer ^. cpRenderer . rResolution)
       logMessage "Rendering image format" $ show (unwrappedRenderer ^. cpRenderer . rImageFormat)
       logInfo "Calling VMD and Tachyon. See \"VMD.out\", \"VMD.err\", \"Tachyon.out\" and \"Tachyon.err\""
-      CP.VMD.plotCubes fi
+      CP.VMD.plotCubes fiWithCubes
       allImages <- findAllImages (fiWithCubes ^. outputPrefix)
       return allImages
     Nothing     -> return $ fiWithCubes ^. imageFiles
