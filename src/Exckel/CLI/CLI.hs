@@ -225,7 +225,7 @@ initialise args = do
             }
 
   -- Look for already existing cube files.
-  cubeFiles' <- findAllCubes outputPrefix'
+  cubeFiles' <- sortOrbCubes <$> findAllCubes outputPrefix'
 
   -- Look for already existing image files.
   imageFiles' <- findAllImages outputPrefix'
@@ -447,7 +447,7 @@ calcOrbCubes fi es = do
       logMessage "Orbital calculator"    (fi ^. orbGenerator . _Just . ogExePath)
       logInfo "Calculating orbitals now. See \"MultiWFN.out\" and \"MultiWFN.err\"."
       CG.MWFN.calculateOrbs fi excitedStatesForOrbs
-      allCubes <- findAllCubes (fi ^. outputPrefix)
+      allCubes <- sortOrbCubes <$> findAllCubes (fi ^. outputPrefix)
       return allCubes
 
   return $ fi & cubeFiles . orbCubes .~ (cubeInfo ^. orbCubes)
@@ -467,7 +467,7 @@ calcCDDCubes fi es = do
     Just _  -> "yes"
 
   -- Update the file info about available cubes
-  existingCubes <- findAllCubes (fi ^. outputPrefix)
+  existingCubes <- sortOrbCubes <$> findAllCubes (fi ^. outputPrefix)
   let fiWithCubes = fi & cubeFiles .~ existingCubes
 
   cubeInfo <- case (fiWithCubes ^. cddGenerator) of
@@ -492,14 +492,14 @@ calcCDDCubes fi es = do
               ((fiWithCubes ^. outputPrefix) ++ [pathSeparator] ++ "CDD" ++ show i ++ ".cube")
               (CG.Exckel.writeCube d)
         ) es
-      allCubes <- findAllCubes (fiWithCubes ^. outputPrefix)
+      allCubes <- sortOrbCubes <$> findAllCubes (fiWithCubes ^. outputPrefix)
       return allCubes
     Just MultiWFNCDD {} -> do
       logMessage "CDD calculator" (show $ fiWithCubes ^. cddGenerator . _Just . cddExePath)
       logMessage "Calculating CDDs for states" (show $ map (^. nState) es)
       logInfo "Calculating CDDs. See \"MultiWFN.out\" and \"MultiWFN.err\""
       CG.MWFN.calculateCDDs fiWithCubes es
-      allCubes <- findAllCubes (fiWithCubes ^. outputPrefix)
+      allCubes <- sortOrbCubes <$> findAllCubes (fiWithCubes ^. outputPrefix)
       return allCubes
     Nothing             -> return $ fiWithCubes ^. cubeFiles
 
@@ -522,7 +522,7 @@ doPlots fi = do
     Just _  -> "yes"
 
   -- Update the file info about available cubes
-  existingCubes <- findAllCubes (fi ^. outputPrefix)
+  existingCubes <- sortOrbCubes <$> findAllCubes (fi ^. outputPrefix)
   let fiWithCubes = fi & cubeFiles .~ existingCubes
 
   imageInfo <- case (fiWithCubes ^. cubePlotter) of

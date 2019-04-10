@@ -6,6 +6,7 @@ module Exckel.CLI.SharedFunctions
 , findAllCubes
 , findAllImages
 , findAllMRCCMoldenNO
+, sortOrbCubes
 ) where
 import           Control.Monad
 import           Data.Char
@@ -16,6 +17,9 @@ import           System.Directory
 import           System.FilePath
 import           System.IO
 import           Text.Printf
+import Lens.Micro.Platform
+import Data.List
+import Data.Maybe
 
 -- | Put an information to the screen, which displays a value
 logMessage :: String -> String -> IO ()
@@ -129,3 +133,19 @@ findAllMRCCMoldenNO outdir = do
   where
     prefix = "MOLDEN_NO."
     prefixLength = length prefix
+
+-- | Sort the orbitals and natural orbitals by their numbers and states, so that they appear in a
+-- | more helpful order in the output document.
+sortOrbCubes :: CubeFiles -> CubeFiles
+sortOrbCubes cf = cf
+  & orbCubes .~ Just orbitalsSorted
+  & natOrbCubes .~ Just naturalOrbitalsSorted
+  where
+    orbitals = fromMaybe [] $ cf ^. orbCubes
+    orbitalIndices = map ((read :: String -> Int) . drop 3 . takeBaseName) $ orbitals
+    orbitalsIndexed = zip orbitalIndices orbitals
+    orbitalsSorted = map snd . sortOn fst $ orbitalsIndexed
+    naturalOrbitals = fromMaybe [] $ cf ^. natOrbCubes
+    naturalOrbitalsIndices = map ((\[_, state, orb] -> (state, orb)) . splitOn "_" . takeBaseName) naturalOrbitals
+    naturalOrbitalsIndexed = zip naturalOrbitalsIndices naturalOrbitals
+    naturalOrbitalsSorted = map snd .  sortOn (^. _1 . _2) . sortOn (^. _1 . _1) $ naturalOrbitalsIndexed
