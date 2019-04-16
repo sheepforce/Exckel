@@ -279,7 +279,7 @@ instance (Show CalcSoftware) where
   show a = case a of
     Gaussian{} -> "Gaussian with " ++ (show $ a ^. calcType)
     NWChem{}   -> "NWchem with " ++ (show $ a ^. calcType)
-    MRCC{}     -> "MRCC with" ++ (show $ a ^. calcType)
+    MRCC{}     -> "MRCC with " ++ (show $ a ^. calcType)
 
 
 -- | Supported output formats for the excitation summary
