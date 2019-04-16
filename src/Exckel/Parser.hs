@@ -11,7 +11,6 @@ module Exckel.Parser
 , vmdRC
 ) where
 import           Control.Applicative
---import           Data.Array.Repa      (Array, DIM3, U, Z)
 import qualified Data.Array.Repa      as R
 import           Data.Attoparsec.Text hiding (take)
 import           Data.Sort

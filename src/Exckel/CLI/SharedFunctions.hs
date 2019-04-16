@@ -10,16 +10,17 @@ module Exckel.CLI.SharedFunctions
 ) where
 import           Control.Monad
 import           Data.Char
+import           Data.List
+import           Data.List.Extra     hiding (splitOn)
 import           Data.List.Split
+import           Data.Maybe
 import           Exckel.Types
+import           Lens.Micro.Platform
 import           System.Console.ANSI
 import           System.Directory
 import           System.FilePath
 import           System.IO
 import           Text.Printf
-import Lens.Micro.Platform
-import Data.List
-import Data.Maybe
 
 -- | Put an information to the screen, which displays a value
 logMessage :: String -> String -> IO ()
@@ -148,9 +149,14 @@ sortOrbCubes cf = cf
     naturalOrbitals = fromMaybe [] $ cf ^. natOrbCubes
     naturalOrbitalsIndices =
       map (
-        (\[_, state, orb] -> ((read :: String -> Int) state, (read :: String -> Int) orb)) . 
+        (\[_, state, orb] -> ((read :: String -> Int) state, (read :: String -> Int) orb)) .
         splitOn "_" .
         takeBaseName
       ) naturalOrbitals
     naturalOrbitalsIndexed = zip naturalOrbitalsIndices naturalOrbitals
-    naturalOrbitalsSorted = map snd .  sortOn (^. _1 . _2) . sortOn (^. _1 . _1) $ naturalOrbitalsIndexed
+    naturalOrbitalsSorted =
+      map snd .
+      concat .
+      map (sortOn (^. _1 . _2)) .
+      groupOn (^. _1 . _1) $
+      naturalOrbitalsIndexed
