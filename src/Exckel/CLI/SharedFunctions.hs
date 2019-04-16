@@ -158,5 +158,7 @@ sortOrbCubes cf = cf
       map snd .
       concat .
       map (sortOn (^. _1 . _2)) .
-      groupOn (^. _1 . _1) $
+      sortOn ((^. _1 . _1) . head) .
+      groupOn (^. _1 . _1) .
+      sortOn (^. _1 . _1) $
       naturalOrbitalsIndexed
