@@ -41,6 +41,7 @@ data ExckelArgs = ExckelArgs
   , calcsoftware   :: String
   , calctype       :: String
   , spectrum       :: String
+  , renumberStates :: Bool
   } deriving (Show, Data, Typeable)
 
 exckelArgs :: ExckelArgs
@@ -144,6 +145,10 @@ exckelArgs = ExckelArgs
   , calctype       =  "tddft"
                    &= help "Calculation type. [tddft | rc-adc2 (reduced cost ADC(2))]"
                    &= typ "STRING"
+
+  , renumberStates =  False
+                   &= help "Renumber the states (energy order), after high spin multiplicities have been removed by \"--s2filter\"."
+                   &= typ "BOOL"
 
   } &= summary "The Exckel automatic summary programm"
     &= help "Available command line arguments. At least \"--wf\" and \"--exc\" must be specified."

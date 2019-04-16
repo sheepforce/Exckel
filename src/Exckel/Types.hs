@@ -71,6 +71,7 @@ module Exckel.Types
 , ssEnergyFilter
 , ssSpecificStates
 , ssWeightFilter
+, ssRenumberAfterFilter
 , FileInfo(..)
 , logFile
 , calcSoftware
@@ -313,6 +314,7 @@ data StateSelection = StateSelection
   , _ssEnergyFilter              :: Maybe (Double, Double)
   , _ssSpecificStates            :: Maybe [Int]
   , _ssWeightFilter              :: Double
+  , _ssRenumberAfterFilter       :: Bool
   }
   deriving (Eq, Show)
 makeLenses ''StateSelection

@@ -263,12 +263,14 @@ initialise args = do
         Nothing -> Nothing
         Just s  -> (readMaybe :: String -> Maybe [Int]) s
       ssWeightFilter' = weightfilter args
+      ssRenumberAfterFilter' = renumberStates args
       stateSelection' = StateSelection
         { _ssHigherMultContrib         = ssHigherMultContrib'
         , _ssMinimumOscillatorStrenght = ssMinimumOscillatorStrenght'
         , _ssEnergyFilter              = ssEnergyFilter'
         , _ssSpecificStates            = ssSpecificStates'
         , _ssWeightFilter              = ssWeightFilter'
+        , _ssRenumberAfterFilter       = ssRenumberAfterFilter'
         }
 
   -- The initial information about program execution and files built from gathered values
@@ -344,12 +346,17 @@ getExcitedStates fi = do
       excitedStatesByS2 = case (fi ^. stateSelection . ssHigherMultContrib) of
         Nothing   -> excitedStatesAll
         Just maxC -> filterByS2 maxC excitedStatesAll
+      -- Potentially renumber excited states if requested so that no gap arrises after removal of
+      -- states by S2 filter
+      excitedStatesByS2Renumber = if (fi ^. stateSelection . ssRenumberAfterFilter)
+        then renumberExcitedStates excitedStatesByS2
+        else excitedStatesByS2
       -- Filter remaining states by fitting within an energy window.
       excitedStatesByEnergy = case (fi ^. stateSelection . ssEnergyFilter) of
-        Nothing           -> excitedStatesByS2
+        Nothing           -> excitedStatesByS2Renumber
         Just (eMin, eMax) -> filter
           (\x -> (hartree2eV $ x ^. relEnergy) >= eMin && (hartree2eV $ x ^. relEnergy) <= eMax)
-          excitedStatesByS2
+          excitedStatesByS2Renumber
       -- Filter remaining states by minimum oscillator strength
       excitedStatesByFOsc = case (fi ^. stateSelection . ssMinimumOscillatorStrenght) of
         Nothing      -> excitedStatesByEnergy
@@ -367,9 +374,10 @@ getExcitedStates fi = do
     Just s  -> logMessage "States for analysis (but not plotting)" (show s)
   logMessage "States in log file"                               (show $ length excitedStatesAll)
   logMessage "States removed due to <S**2> deviation"           (show $ length excitedStatesAll - length excitedStatesByS2)
-  logMessage "States removed due to energy range"               (show $ length excitedStatesByS2 - length excitedStatesByEnergy)
+  logMessage "Renumber the states after <S**2> filtering"       (show $ fi ^. stateSelection . ssRenumberAfterFilter)
+  logMessage "States removed due to energy range"               (show $ length excitedStatesByS2Renumber - length excitedStatesByEnergy)
   logMessage "States removed due to oscillator strength cutoff" (show $ length excitedStatesByEnergy - length excitedStatesByFOsc)
-  logMessage "Remaining states for plotting the spectrum"       (show . map (^. nState) $ excitedStatesByS2)
+  logMessage "Remaining states for plotting the spectrum"       (show . map (^. nState) $ excitedStatesByS2Renumber)
   logMessage "Remaining states for analysis"                    (show . map (^. nState) $ excitedStatesFinalFilter)
 
   -- Check if anything remains after filtering
@@ -379,7 +387,7 @@ getExcitedStates fi = do
       error "No excited states left for analysis."
     else return ()
 
-  return (excitedStatesByS2, excitedStatesByFOsc, excitedStatesFinalFilter)
+  return (excitedStatesByS2Renumber, excitedStatesByFOsc, excitedStatesFinalFilter)
 
 
 

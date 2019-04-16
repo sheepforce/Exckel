@@ -16,8 +16,9 @@ module Exckel.ExcUtils
 , idealS2fromMult
 , angstrom2Bohr
 , bohr2Angstrom
+, renumberExcitedStates
 ) where
-import           Data.List           (nub)
+import           Data.List           (nub, sortOn)
 import           Data.Maybe
 import qualified Data.Vector         as V
 import           Exckel.Types
@@ -138,3 +139,8 @@ angstrom2Bohr x = 1.88972613 * x
 -- | Convert from Bohr to Angstrom
 bohr2Angstrom :: Floating a => a -> a
 bohr2Angstrom x = 0.52917721 * x
+
+-- | Given excited states, renumber them based on their energy (this might be helpful if s2filter
+-- | removed serveral states and now states are missing).
+renumberExcitedStates :: [ExcState] -> [ExcState]
+renumberExcitedStates es = zipWith (\i s -> s & nState .~ i) [1 .. ] . sortOn (^. relEnergy) $ es
