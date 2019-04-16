@@ -146,6 +146,11 @@ sortOrbCubes cf = cf
     orbitalsIndexed = zip orbitalIndices orbitals
     orbitalsSorted = map snd . sortOn fst $ orbitalsIndexed
     naturalOrbitals = fromMaybe [] $ cf ^. natOrbCubes
-    naturalOrbitalsIndices = map ((\[_, state, orb] -> (state, orb)) . splitOn "_" . takeBaseName) naturalOrbitals
+    naturalOrbitalsIndices =
+      map (
+        (\[_, state, orb] -> ((read :: String -> Int) state, (read :: String -> Int) orb)) . 
+        splitOn "_" .
+        takeBaseName
+      ) naturalOrbitals
     naturalOrbitalsIndexed = zip naturalOrbitalsIndices naturalOrbitals
     naturalOrbitalsSorted = map snd .  sortOn (^. _1 . _2) . sortOn (^. _1 . _1) $ naturalOrbitalsIndexed
