@@ -13,6 +13,8 @@ import           Data.Attoparsec.Text
 import qualified Data.ByteString.Char8            as BS
 import qualified Data.ByteString.Lazy.Char8       as BL
 import           Data.List
+import           Data.Map.Strict                  (Map)
+import qualified Data.Map.Strict                  as M
 import           Data.Maybe
 import qualified Data.Text                        as T
 import qualified Data.Text.IO                     as T
@@ -304,8 +306,10 @@ initialise args = do
 
 -- | Reading the log file, parsing the excited states and filtering of excited states. Returns two
 -- | lists of excited states. The first one for obtaining the spectrum, the second one labeling the
--- | spectrum and the third for analysis in the table.
-getExcitedStates :: FileInfo -> IO ([ExcState], [ExcState], [ExcState])
+-- | spectrum and the third for analysis in the table. The last return is optional and contains a
+-- | list of which old state (as from the QC output (fst)), is which new state after resorting the
+-- | energies (snd).
+getExcitedStates :: FileInfo -> IO ([ExcState], [ExcState], [ExcState], Maybe (Map Int Int))
 getExcitedStates fi = do
   -- Header of section
   logHeader "\n----"
@@ -351,6 +355,12 @@ getExcitedStates fi = do
       excitedStatesByS2Renumber = if (fi ^. stateSelection . ssRenumberAfterFilter)
         then renumberExcitedStates excitedStatesByS2
         else excitedStatesByS2
+      -- A replacement list of which old state became which new state.
+      excitedStateResortMap = if (fi ^. stateSelection . ssRenumberAfterFilter)
+        then Just $
+               M.fromList $
+               zip (map (^. nState) excitedStatesByS2) (map (^. nState) excitedStatesByS2Renumber)
+        else Nothing
       -- Filter remaining states by fitting within an energy window.
       excitedStatesByEnergy = case (fi ^. stateSelection . ssEnergyFilter) of
         Nothing           -> excitedStatesByS2Renumber
@@ -387,7 +397,12 @@ getExcitedStates fi = do
       error "No excited states left for analysis."
     else return ()
 
-  return (excitedStatesByS2Renumber, excitedStatesByFOsc, excitedStatesFinalFilter)
+  return
+    ( excitedStatesByS2Renumber
+    , excitedStatesByFOsc
+    , excitedStatesFinalFilter
+    , excitedStateResortMap
+    )
 
 
 
@@ -476,14 +491,15 @@ calcCDDCubes fi es = do
 
   -- Update the file info about available cubes
   existingCubes <- sortOrbCubes <$> findAllCubes (fi ^. outputPrefix)
+  -- potentially now resort the orbitals based on
   let fiWithCubes = fi & cubeFiles .~ existingCubes
 
   cubeInfo <- case (fiWithCubes ^. cddGenerator) of
     Just REPA {}        -> do
       logMessage "CDD calculator" "REgular Parallel Arrays (neglecting all cross terms!)"
       logMessage "Calculating CDDs for states" (show $ map (^. nState) es)
-      logMessage "Orbital cubes available" (show $ map takeFileName <$> (fiWithCubes ^. cubeFiles . orbCubes))
-      logMessage "Natural orbital cubes available" (show $ map takeFileName <$> (fiWithCubes ^. cubeFiles . natOrbCubes))
+      logMessage "Orbital cubes available" (show $ map takeFileName (fiWithCubes ^. cubeFiles . orbCubes))
+      logMessage "Natural orbital cubes available" (show $ map takeFileName (fiWithCubes ^. cubeFiles . natOrbCubes))
       logInfo "Calculating CDDs in parallel using REPA. See \"REPA.log\""
       mapM_ (\s -> do
         cddTriple <- CG.Exckel.calculateCDD fiWithCubes s
@@ -536,11 +552,11 @@ doPlots fi = do
   imageInfo <- case (fiWithCubes ^. cubePlotter) of
     Just VMD {} -> do
       -- Informations about the current settings
-      logMessage "Orbital cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . orbCubes . _Just
-      logMessage "Natural orbital cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . natOrbCubes . _Just
-      logMessage "Hole density cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . holeCubes . _Just
-      logMessage "Electron density cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . electronCubes . _Just
-      logMessage "CDD cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . cddCubes . _Just
+      logMessage "Orbital cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . orbCubes
+      logMessage "Natural orbital cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . natOrbCubes
+      logMessage "Hole density cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . holeCubes
+      logMessage "Electron density cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . electronCubes
+      logMessage "CDD cubes to plot" $ show $ map takeFileName $ fiWithCubes ^. cubeFiles . cddCubes
       logMessage "Cube plotter" $ fiWithCubes ^. cubePlotter . _Just . cpExePath
       logMessage "Cube renderer" $ fiWithCubes ^. cubePlotter . _Just . cpRenderer . rExePath
       logMessage "VMD startup file with general settings" $ fromMaybe
@@ -571,10 +587,10 @@ createSummaryDocument fi es = do
 
   logMessage "Pandoc output format" $ show (fi ^. pandocInfo . pdDocType)
   logMessage "Pandoc formatting reference document" $ show (fi ^. pandocInfo . pdRefDoc) ++ ("if \"panref.tmp\" this is the builtin default")
-  logMessage "Orbital images available" $ show $ map (takeFileName . snd) (fi ^. imageFiles . orbImages . _Just)
-  logMessage "Hole images available" $ show $ map (takeFileName . snd) (fi ^. imageFiles . holeImages . _Just)
-  logMessage "Electron images available" $ show $ map (takeFileName . snd) (fi ^. imageFiles . electronImages . _Just)
-  logMessage "CDD images available" $ show $ map (takeFileName . snd) (fi ^. imageFiles . cddImages . _Just)
+  logMessage "Orbital images available" $ show $ map (takeFileName . snd) (M.toList $ fi ^. imageFiles . orbImages)
+  logMessage "Hole images available" $ show $ map (takeFileName . snd) (M.toList $ fi ^. imageFiles . holeImages)
+  logMessage "Electron images available" $ show $ map (takeFileName . snd) (M.toList $ fi ^. imageFiles . electronImages)
+  logMessage "CDD images available" $ show $ map (takeFileName . snd) (M.toList $ fi ^. imageFiles . cddImages)
 
   let summary = excitationSummary fi es
   case (fi ^. pandocInfo . pdDocType) of

@@ -99,6 +99,7 @@ module Exckel.Types
 , coordinate
 ) where
 import           Data.Array.Repa     (Array, DIM3, U)
+import           Data.Map.Strict     (Map)
 import qualified Data.Text           as T
 import           Data.Vector         hiding ((++))
 import           Lens.Micro.Platform
@@ -215,11 +216,11 @@ makeLenses ''CubePlotter
 -- | naming convention is "orb$X.cube", where $X is the number of the orbital (starting from 1) and
 -- | alpha and beta orbitals are only distinguished by their numbers (program dependent)
 data CubeFiles = CubeFiles
-  { _orbCubes      :: Maybe [FilePath]
-  , _natOrbCubes   :: Maybe [FilePath]
-  , _cddCubes      :: Maybe [FilePath]
-  , _electronCubes :: Maybe [FilePath]
-  , _holeCubes     :: Maybe [FilePath]
+  { _orbCubes      :: [FilePath]
+  , _natOrbCubes   :: [FilePath]
+  , _cddCubes      :: [FilePath]
+  , _electronCubes :: [FilePath]
+  , _holeCubes     :: [FilePath]
   } deriving (Eq, Show)
 makeLenses ''CubeFiles
 
@@ -229,11 +230,11 @@ makeLenses ''CubeFiles
 -- | Number. In case of the natural orbitals, they are tuples with excited state number, orbital
 -- | number and filepath in this order.
 data ImageFiles = ImageFiles
-  { _orbImages      :: Maybe [(Int, FilePath)]
-  , _natOrbImages   :: Maybe [(Int, Int, FilePath)]
-  , _cddImages      :: Maybe [(Int, FilePath)]
-  , _electronImages :: Maybe [(Int, FilePath)]
-  , _holeImages     :: Maybe [(Int, FilePath)]
+  { _orbImages      :: Map Int FilePath
+  , _natOrbImages   :: Map (Int, Int) FilePath
+  , _cddImages      :: Map Int FilePath
+  , _electronImages :: Map Int FilePath
+  , _holeImages     :: Map Int FilePath
   } deriving (Eq, Show)
 makeLenses ''ImageFiles
 

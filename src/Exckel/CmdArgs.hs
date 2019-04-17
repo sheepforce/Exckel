@@ -149,6 +149,5 @@ exckelArgs = ExckelArgs
   , renumberStates =  False
                    &= help "Renumber the states (energy order), after high spin multiplicities have been removed by \"--s2filter\"."
                    &= typ "BOOL"
-
   } &= summary "The Exckel automatic summary programm"
     &= help "Available command line arguments. At least \"--wf\" and \"--exc\" must be specified."

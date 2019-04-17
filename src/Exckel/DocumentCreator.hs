@@ -7,7 +7,7 @@ module Exckel.DocumentCreator
 ( excitationSummary
 ) where
 import           Data.List.Split     (chunksOf)
-import           Data.Maybe
+import qualified Data.Map.Strict     as M
 import qualified Data.Vector         as V
 import           Exckel.ExcUtils
 import           Exckel.Types
@@ -81,11 +81,11 @@ excitationSummary fi es =
                  , para . text . printf "%4.1F" . (1239.84197386209 /) . (* 27.11386020) $ e ^. relEnergy
                  , para . text . printf "%6.4F" $ e ^. oscillatorStrength
                  , case (getCDDImageByType fi e holeImages) of
-                     Nothing -> para . text $ ""
-                     Just (nState', imagePath) -> para $ imageWith ("", ["align-center"], [("width", "2.2cm")]) imagePath "" (text . ("hole " ++) . show $ nState')
+                     (_, Nothing)              -> para . text $ ""
+                     (nState', Just imagePath) -> para $ imageWith ("", ["align-center"], [("width", "2.2cm")]) imagePath "" (text . ("hole " ++) . show $ nState')
                  , case (getCDDImageByType fi e electronImages) of
-                     Nothing -> para . text $ ""
-                     Just (nState', imagePath) -> para $ imageWith ("", ["align-center"], [("width", "2.2cm")]) imagePath "" (text . ("electron " ++) . show $ nState')
+                     (_, Nothing)              -> para . text $ ""
+                     (nState', Just imagePath) -> para $ imageWith ("", ["align-center"], [("width", "2.2cm")]) imagePath "" (text . ("electron " ++) . show $ nState')
                  ]
           ) excStates
     -- create a table of all (natural) orbital pictures
@@ -96,21 +96,23 @@ excitationSummary fi es =
         map (\i -> para (imageWith ("", ["align-center"], [("width", "2.5cm")]) (snd i) (show . fst $ i) (text . show . fst $ i))
                    <>
                    para (text (orbNumberToSpinOrbNumber nBasFun isOpenShell . fst $ i))
-            ) . fromMaybe [] $ fi ^. imageFiles . orbImages
+            ) .
+        M.toList $ fi ^. imageFiles . orbImages
       Right _ ->
         chunksOf 5 .
         map (\i -> para (imageWith
                           ("", ["align-center"], [("width", "2.5cm")])
-                          (i ^. _3)
-                          ("Exc. " ++ (show $ i ^. _1) ++ " " ++ "Orb. " ++ (show $ i ^. _2))
-                          (text $ "Exc. " ++ (show $ i ^. _1) ++ " " ++ "Orb. " ++ (show $ i ^. _2))
+                          (i ^. _2)
+                          ("Exc. " ++ (show $ i ^. _1 . _1) ++ " " ++ "Orb. " ++ (show $ i ^. _1 . _2))
+                          (text $ "Exc. " ++ (show $ i ^. _1 . _1) ++ " " ++ "Orb. " ++ (show $ i ^. _1 . _2))
                         )
                    <>
                    para (text $
-                           "Exc. " ++ (show $ i ^. _1) ++ "\n" ++
-                           "Orb. " ++ (orbNumberToSpinOrbNumber nBasFun isOpenShell . (^. _2) $ i)
+                           "Exc. " ++ (show $ i ^. _1 . _1) ++ "\n" ++
+                           "Orb. " ++ (orbNumberToSpinOrbNumber nBasFun isOpenShell . (^. _1 . _2) $ i)
                         )
-            ) . fromMaybe [] $ fi ^. imageFiles . natOrbImages
+            ) .
+        M.toList $ fi ^. imageFiles . natOrbImages
     -- fill single line in a transition block, which constructs an CI determinant (CIS has single
     -- pair per line, CID has two pairs per line and so on)
     ciEntry :: CIDeterminant -> String
@@ -161,11 +163,7 @@ excitationSummary fi es =
     manyWeightEntry ciDs = lineBlock . map text . V.toList . V.map weightEntry $ ciDs
     -- Look for hole image of the excited state. Give the FileInfo type, an excited state and the
     -- lens for the corresponding image type (from ImageFiles type).
-    getCDDImageByType fi' eS' lens' = case candidates of
-      Nothing -> Nothing
-      Just [] -> Nothing
-      Just x  -> Just $ head x
-      where
-        candidates =
-          filter (\x -> (fst x) == (eS' ^. nState)) <$>
-          fi' ^. imageFiles . lens'
+    getCDDImageByType fi' eS' lens' =
+      ( eS' ^. nState
+      , M.lookup (eS' ^. nState) (fi' ^. imageFiles . lens')
+      )

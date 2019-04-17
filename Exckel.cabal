@@ -4,7 +4,7 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: cc6a4e593070e5b2a223056d741843c539ecfdcbc14e3385d6aeb32abbeb03bc
+-- hash: d6ac24e27399ac96323936bb6517922d5416f0349194d1474e63d73a06221c90
 
 name:           Exckel
 version:        0.3.0.3
@@ -58,6 +58,7 @@ library
     , base >=4.7 && <5
     , bytestring >=0.10.8.2
     , cmdargs >=0.10.20
+    , containers >=0.6.0.1
     , directory >=1.3.3.0
     , extra >=1.6.14
     , file-embed >=0.0.11
@@ -90,6 +91,7 @@ executable exckel
     , base >=4.7 && <5
     , bytestring >=0.10.8.2
     , cmdargs >=0.10.20
+    , containers >=0.6.0.1
     , directory >=1.3.3.0
     , extra >=1.6.14
     , file-embed >=0.0.11

@@ -12,7 +12,6 @@ module Exckel.CubePlotter.VMD
 import           Control.Monad.Identity
 import           Data.Attoparsec.Text
 import qualified Data.HashMap.Lazy      as H
-import           Data.Maybe
 import qualified Data.Text              as T
 import qualified Data.Text.IO           as T
 import           Exckel.Parser
@@ -130,11 +129,11 @@ plotCubes fi = do
     vmdOutDir = fi ^. outputPrefix
     tachyonInputs =
       (map ((++ ".dat") . T.unpack) . getBaseNames . concat) $
-      [ fromMaybe [] $ fi ^. cubeFiles . orbCubes
-      , fromMaybe [] $ fi ^. cubeFiles . natOrbCubes
-      , fromMaybe [] $ fi ^. cubeFiles . cddCubes
-      , fromMaybe [] $ fi ^. cubeFiles .electronCubes
-      , fromMaybe [] $ fi ^. cubeFiles . holeCubes
+      [ fi ^. cubeFiles . orbCubes
+      , fi ^. cubeFiles . natOrbCubes
+      , fi ^. cubeFiles . cddCubes
+      , fi ^. cubeFiles .electronCubes
+      , fi ^. cubeFiles . holeCubes
       ]
     resX = fst $ cubePlotterVMD  ^. cpRenderer . rResolution
     resY = snd $ cubePlotterVMD ^. cpRenderer . rResolution
@@ -159,11 +158,11 @@ substitueTemplate fi = do
       viewpoint = ("set viewpoints" `T.append`) <$> stateParsed
 
   -- get basenames of all cubes
-  let orbitalBaseNames = toTclList $ getBaseNames <$> (fi ^. cubeFiles . orbCubes)
-      natOrbBaseNames = toTclList $ getBaseNames <$> (fi ^. cubeFiles . natOrbCubes)
-      cddBaseNames = toTclList $ getBaseNames <$> (fi ^. cubeFiles . cddCubes)
-      electronBaseNames = toTclList $ getBaseNames <$> (fi ^. cubeFiles . electronCubes)
-      holeBaseNames = toTclList $ getBaseNames <$> (fi ^. cubeFiles . holeCubes)
+  let orbitalBaseNames = toTclList $ getBaseNames (fi ^. cubeFiles . orbCubes)
+      natOrbBaseNames = toTclList $ getBaseNames (fi ^. cubeFiles . natOrbCubes)
+      cddBaseNames = toTclList $ getBaseNames (fi ^. cubeFiles . cddCubes)
+      electronBaseNames = toTclList $ getBaseNames (fi ^. cubeFiles . electronCubes)
+      holeBaseNames = toTclList $ getBaseNames (fi ^. cubeFiles . holeCubes)
 
   -- key value map for substitutions by Ginger as Map
   let context = H.fromList
@@ -196,10 +195,8 @@ getBaseNames :: [FilePath] -> [T.Text]
 getBaseNames = map (T.pack . fst . splitExtension)
 
 -- | Convert a list of basenames to a single string for the "foreach" loop in the tcl script
-toTclList :: Maybe [T.Text] -> T.Text
-toTclList s = case s of
-  Just x  -> T.concat . map (`T.append` " ") $ x
-  Nothing -> ""
+toTclList :: [T.Text] -> T.Text
+toTclList s = T.concat . map (`T.append` " ") $ s
 
 -- | Delete Nth element from a list
 deleteNth :: Int -> [a] -> [a]

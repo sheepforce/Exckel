@@ -16,7 +16,7 @@ main = do
   -- Initialise all fields with environment and command line argument related stuff
   fileInfoInitial <- initialise arguments
   -- Parse and filter the excited states.
-  (excitedStatesSpectrum, excitedStatesSpectrumLabel, excitedStatesAnalysis) <- getExcitedStates fileInfoInitial
+  (excitedStatesSpectrum, excitedStatesSpectrumLabel, excitedStatesAnalysis, resortMap) <- getExcitedStates fileInfoInitial
   -- Plot the spectrum
   plotSpectrum fileInfoInitial (excitedStatesSpectrum, excitedStatesSpectrumLabel)
   -- Calculate orbital cubes

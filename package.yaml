@@ -46,6 +46,7 @@ dependencies:
   - sort >= 1.0.0.0
   - ansi-terminal >= 0.8.2
   - extra >= 1.6.14
+  - containers >= 0.6.0.1
 
 library:
   source-dirs: src

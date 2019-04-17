@@ -197,8 +197,8 @@ calculateCDD fi eS
     -- All orbitals constructing the CI wavefunction
     requiredOrbs = sort . getOrbNumbers $ eS
     -- All orbitals FilePaths available on disk as cubes
-    availableCanOrbsFiles = (fromMaybe [] $ fi ^. cubeFiles . orbCubes)
-    availableNatOrbsFiles = (fromMaybe [] $ fi ^. cubeFiles . natOrbCubes)
+    availableCanOrbsFiles = (fi ^. cubeFiles . orbCubes)
+    availableNatOrbsFiles = (fi ^. cubeFiles . natOrbCubes)
     -- All orbitals by their number as written to a molden file.
     availableCanOrbs =
       sort .
