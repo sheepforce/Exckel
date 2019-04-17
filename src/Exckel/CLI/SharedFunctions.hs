@@ -7,7 +7,9 @@ module Exckel.CLI.SharedFunctions
 , findAllImages
 , findAllMRCCMoldenNO
 , sortOrbCubes
+, linkRenameImages
 , popReplace
+, renumberExcitedStates
 ) where
 import           Control.Monad
 import           Data.Char
@@ -170,25 +172,43 @@ sortOrbCubes cf = cf
 -- | takes care of changing the ImageFiles type, so that the renumbered images are linked with the
 -- | images which are on file system level with the old states. The first argument is a replacement
 -- | list of old state numbers and new state numbers.
-{-
 linkRenameImages :: Map Int Int -> ImageFiles -> ImageFiles
 linkRenameImages rMap images = images
-  & natOrbImages . _1 .~ natOrbsStateNew
-  & holeImages . _1 .~ holeIndsNew
-  & electronImages . _1 .~ electronIndsNew
-  &
+  & holeImages .~ holeMap
+  & electronImages .~ electronMap
+  & cddImages .~ cddMap
+  & natOrbImages .~ natOrbMap
   where
-    -- Get state numbers from all relevant image types.
-    natOrbsStateInds = images ^. natOrbImages . _1
-    holeInds = images ^. holeImages . _1
-    electronInds = images ^. electronImages . _1
-    cddInds = images ^. cddInds . _1
-    -- Assign new state numbers
-    natOrbsStateNew = popReplace rMap natOrbsStateInds
-    holeIndsNew = popReplace rMap holeInds
-    electronIndsNew = popReplace rMap electronInds
-    cddIndsNew = popReplace rMap cddInds
--}
+    -- Convert the maps to tuple lists
+    (holeList, electronList, cddList) =
+      (\[h, e, d] -> (h, e, d)) .
+      map M.toList $
+      [(^. holeImages), (^. electronImages), (^. cddImages)] <*> [images]
+    natOrbList = M.toList $ images ^. natOrbImages
+    -- Get the filenames
+    (holePaths, electronPaths, cddPaths) =
+      (\[h, e, d] -> (h, e, d)) .
+      map (map snd) $
+      [holeList, electronList, cddList]
+    natOrbPaths = map snd natOrbList
+    -- Get the old state numbers
+    (holeIndOld, electronIndOld, cddIndOld) =
+      (\[h, e, d] -> (h, e, d)) .
+      map (map fst) $
+      [holeList, electronList, cddList]
+    natOrbIndOld = map fst natOrbList
+    natOrbStateIndOld = map fst natOrbIndOld
+    -- Make new state new numbers
+    (holeIndNew, electronIndNew, cddIndNew, natOrbStateIndNew) =
+      (\[h, e, d, n] -> (h, e, d, n)) .
+      map (popReplace rMap) $
+      [holeIndOld, electronIndOld, cddIndOld, natOrbStateIndOld]
+    natOrbIndNew = zipWith (\ns (_, o) -> (ns, o)) natOrbStateIndOld natOrbIndOld
+    -- Make new key value lists and convert them to Maps
+    holeMap = M.fromList $ zip holeIndNew holePaths
+    electronMap = M.fromList $ zip electronIndNew electronPaths
+    cddMap = M.fromList $ zip cddIndNew cddPaths
+    natOrbMap = M.fromList $ zip natOrbIndNew natOrbPaths
 
 -- | Replace patterns in a list without duplication issues. This avoids issues with possible
 -- | duplicate keys by accepting only Map as input. Keeps the original order of the input list
@@ -215,3 +235,11 @@ popReplace rMap oldList =
       else snd . head . filter (\(b, _) -> b == True) $ r
     -- Versions of the original list, where one replacement each has been performed.
     singlySubstLists = zipWith (\r l -> popReplaceElementsAug r l) rList (repeat oldList)
+
+-- | Renumber excited states based on replacement list.
+renumberExcitedStates :: Map Int Int -> [ExcState] -> [ExcState]
+renumberExcitedStates rMap es = newStates
+  where
+    oldStatesNumbers = map (^. nState) es
+    newStatesNumbers = popReplace rMap oldStatesNumbers
+    newStates = zipWith (\i s -> s & nState .~ i) newStatesNumbers es

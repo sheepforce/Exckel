@@ -351,9 +351,11 @@ getExcitedStates fi = do
         Nothing   -> excitedStatesAll
         Just maxC -> filterByS2 maxC excitedStatesAll
       -- Potentially renumber excited states if requested so that no gap arrises after removal of
-      -- states by S2 filter
+      -- states by S2 filter. Convention is, that for file handling and cube labeling always the
+      -- states as assigned by the QC software are used and in each individual function the
+      -- renumbering is performed if necessary.
       excitedStatesByS2Renumber = if (fi ^. stateSelection . ssRenumberAfterFilter)
-        then renumberExcitedStates excitedStatesByS2
+        then renumberExcitedStatesEnergy excitedStatesByS2
         else excitedStatesByS2
       -- A replacement list of which old state became which new state.
       excitedStateResortMap = if (fi ^. stateSelection . ssRenumberAfterFilter)
@@ -363,10 +365,10 @@ getExcitedStates fi = do
         else Nothing
       -- Filter remaining states by fitting within an energy window.
       excitedStatesByEnergy = case (fi ^. stateSelection . ssEnergyFilter) of
-        Nothing           -> excitedStatesByS2Renumber
+        Nothing           -> excitedStatesByS2
         Just (eMin, eMax) -> filter
           (\x -> (hartree2eV $ x ^. relEnergy) >= eMin && (hartree2eV $ x ^. relEnergy) <= eMax)
-          excitedStatesByS2Renumber
+          excitedStatesByS2
       -- Filter remaining states by minimum oscillator strength
       excitedStatesByFOsc = case (fi ^. stateSelection . ssMinimumOscillatorStrenght) of
         Nothing      -> excitedStatesByEnergy
@@ -385,9 +387,14 @@ getExcitedStates fi = do
   logMessage "States in log file"                               (show $ length excitedStatesAll)
   logMessage "States removed due to <S**2> deviation"           (show $ length excitedStatesAll - length excitedStatesByS2)
   logMessage "Renumber the states after <S**2> filtering"       (show $ fi ^. stateSelection . ssRenumberAfterFilter)
-  logMessage "States removed due to energy range"               (show $ length excitedStatesByS2Renumber - length excitedStatesByEnergy)
+  if (fi ^. stateSelection . ssRenumberAfterFilter)
+    then logInfo $
+           "Note that renumbering will not change the number of the cube files and printing of the states in the terminal." ++
+           "The numbering of the states will only change in the Spectrum* files and the summary document."
+    else return ()
+  logMessage "States removed due to energy range"               (show $ length excitedStatesByS2 - length excitedStatesByEnergy)
   logMessage "States removed due to oscillator strength cutoff" (show $ length excitedStatesByEnergy - length excitedStatesByFOsc)
-  logMessage "Remaining states for plotting the spectrum"       (show . map (^. nState) $ excitedStatesByS2Renumber)
+  logMessage "Remaining states for plotting the spectrum"       (show . map (^. nState) $ excitedStatesByS2)
   logMessage "Remaining states for analysis"                    (show . map (^. nState) $ excitedStatesFinalFilter)
 
   -- Check if anything remains after filtering
@@ -397,8 +404,10 @@ getExcitedStates fi = do
       error "No excited states left for analysis."
     else return ()
 
+  print excitedStateResortMap
+
   return
-    ( excitedStatesByS2Renumber
+    ( excitedStatesByS2
     , excitedStatesByFOsc
     , excitedStatesFinalFilter
     , excitedStateResortMap
@@ -409,8 +418,15 @@ getExcitedStates fi = do
 -- | Plotting the spectrum from excited states. Takes all excited states, that contribute to the
 -- | spectrum as first list of excited states and the excited states, that shall be used for
 -- | labeling as a second lsit of excited states.
-plotSpectrum :: FileInfo -> ([ExcState], [ExcState]) -> IO ()
-plotSpectrum fi (esAll, esLabel) = do
+plotSpectrum :: FileInfo -> ([ExcState], [ExcState]) -> Maybe (Map Int Int) -> IO ()
+plotSpectrum fi (esAll, esLabel) rMap = do
+  -- If requested renumber the states ny replacement list generated during parsing of the states.
+  let statesAll = case rMap of
+        Just r  -> renumberExcitedStates r esAll
+        Nothing -> esAll
+      statesLabel = case rMap of
+        Just r  -> renumberExcitedStates r esLabel
+        Nothing -> esLabel
   -- Header
   logHeader "\n----"
   logHeader "Plotting the spectrum:"
@@ -423,10 +439,10 @@ plotSpectrum fi (esAll, esLabel) = do
   case (fi ^. spectrumPlotter) of
     Spectrify {} -> do
       logInfo "Plotting spectrum as \"Spectrum.png\". See \"Spectrify.out\" and \"Spectrify.err\"."
-      SP.SP.plotSpectrum fi esAll esLabel
+      SP.SP.plotSpectrum fi statesAll statesLabel
     Gnuplot {}   -> do
       logInfo "Plotting spectrum as \"Spectrum.png\". See \"Gnuplot.out\" and \"Gnuplot.err\"."
-      SP.GP.plotSpectrum fi esAll esLabel
+      SP.GP.plotSpectrum fi statesAll statesLabel
 
 
 
@@ -579,38 +595,46 @@ doPlots fi = do
 
 
 -- | Use all informations available to create a summary of the calculation with Pandoc.
-createSummaryDocument :: FileInfo -> [ExcState] -> IO ()
-createSummaryDocument fi es = do
+createSummaryDocument :: FileInfo -> [ExcState] -> Maybe (Map Int Int) -> IO ()
+createSummaryDocument fi es rMap = do
+  -- If requested renumber the states by replacement list generated during parsing of the states.
+  let esRenumber = case rMap of
+        Just r  -> renumberExcitedStates r es
+        Nothing -> es
+      fiRenumberedImages = case rMap of
+        Just r  -> fi & imageFiles .~ (linkRenameImages r (fi ^. imageFiles))
+        Nothing -> fi
+
   -- Header
   logHeader "\n----"
   logHeader "Creating summary document:"
 
-  logMessage "Pandoc output format" $ show (fi ^. pandocInfo . pdDocType)
-  logMessage "Pandoc formatting reference document" $ show (fi ^. pandocInfo . pdRefDoc) ++ ("if \"panref.tmp\" this is the builtin default")
-  logMessage "Orbital images available" $ show $ map (takeFileName . snd) (M.toList $ fi ^. imageFiles . orbImages)
-  logMessage "Hole images available" $ show $ map (takeFileName . snd) (M.toList $ fi ^. imageFiles . holeImages)
-  logMessage "Electron images available" $ show $ map (takeFileName . snd) (M.toList $ fi ^. imageFiles . electronImages)
-  logMessage "CDD images available" $ show $ map (takeFileName . snd) (M.toList $ fi ^. imageFiles . cddImages)
+  logMessage "Pandoc output format" $ show (fiRenumberedImages ^. pandocInfo . pdDocType)
+  logMessage "Pandoc formatting reference document" $ show (fiRenumberedImages ^. pandocInfo . pdRefDoc) ++ ("if \"panref.tmp\" this is the builtin default")
+  logMessage "Orbital images available" $ show $ map (takeFileName . snd) (M.toList $ fiRenumberedImages ^. imageFiles . orbImages)
+  logMessage "Hole images available" $ show $ map (takeFileName . snd) (M.toList $ fiRenumberedImages ^. imageFiles . holeImages)
+  logMessage "Electron images available" $ show $ map (takeFileName . snd) (M.toList $ fiRenumberedImages ^. imageFiles . electronImages)
+  logMessage "CDD images available" $ show $ map (takeFileName . snd) (M.toList $ fiRenumberedImages ^. imageFiles . cddImages)
 
-  let summary = excitationSummary fi es
-  case (fi ^. pandocInfo . pdDocType) of
+  let summary = excitationSummary fiRenumberedImages esRenumber
+  case (fiRenumberedImages ^. pandocInfo . pdDocType) of
     DOCX  -> do
       summaryDoc <- runIO $ do
-        writeDocx PD.def {writerReferenceDoc = fi ^. pandocInfo . pdRefDoc} summary
+        writeDocx PD.def {writerReferenceDoc = fiRenumberedImages ^. pandocInfo . pdRefDoc} summary
       case summaryDoc of
         Left err  -> errMessage $ "Error occured during generation of the pandoc summary:" ++ show err
         Right doc -> do
           logInfo "Writing document to \"summary.docx\"."
-          BL.writeFile ((fi ^. outputPrefix) ++ [pathSeparator] ++ "summary.docx") doc
+          BL.writeFile ((fiRenumberedImages ^. outputPrefix) ++ [pathSeparator] ++ "summary.docx") doc
     ODT   -> do
       summaryDoc <- runIO $ do
         odtTemplate <- getDefaultTemplate "odt"
-        writeODT PD.def {writerReferenceDoc = fi ^. pandocInfo . pdRefDoc, writerTemplate = Just odtTemplate} summary
+        writeODT PD.def {writerReferenceDoc = fiRenumberedImages ^. pandocInfo . pdRefDoc, writerTemplate = Just odtTemplate} summary
       case summaryDoc of
         Left err  -> errMessage $ "Error occured during generation of the pandoc summary:" ++ show err
         Right doc -> do
           logInfo "Writing document to \"summary.odt\"."
-          BL.writeFile ((fi ^. outputPrefix) ++ [pathSeparator] ++ "summary.odt") doc
+          BL.writeFile ((fiRenumberedImages ^. outputPrefix) ++ [pathSeparator] ++ "summary.odt") doc
     LATEX -> do
       summaryDoc <- runIO $ do
         texTemplate <- getDefaultTemplate "latex"
@@ -619,4 +643,4 @@ createSummaryDocument fi es = do
         Left err  -> errMessage $ "Error occured during generation of the pandoc summary:" ++ show err
         Right doc -> do
           logInfo "Writing document to \"summary.tex\". You may compile this using xelatex."
-          T.writeFile ((fi ^. outputPrefix) ++ [pathSeparator] ++ "summary.tex") doc
+          T.writeFile ((fiRenumberedImages ^. outputPrefix) ++ [pathSeparator] ++ "summary.tex") doc

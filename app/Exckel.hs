@@ -18,7 +18,7 @@ main = do
   -- Parse and filter the excited states.
   (excitedStatesSpectrum, excitedStatesSpectrumLabel, excitedStatesAnalysis, resortMap) <- getExcitedStates fileInfoInitial
   -- Plot the spectrum
-  plotSpectrum fileInfoInitial (excitedStatesSpectrum, excitedStatesSpectrumLabel)
+  plotSpectrum fileInfoInitial (excitedStatesSpectrum, excitedStatesSpectrumLabel) resortMap
   -- Calculate orbital cubes
   fileInfoUpdatedOrbCubes <- calcOrbCubes fileInfoInitial excitedStatesAnalysis
   -- Calculate CDD cubes
@@ -26,4 +26,4 @@ main = do
   -- Render all cubes to images
   fileInfoWithImages <- doPlots fileInfoUpdatedCDDCubes
   -- Create the summary document
-  createSummaryDocument fileInfoWithImages excitedStatesAnalysis
+  createSummaryDocument fileInfoWithImages excitedStatesAnalysis resortMap
