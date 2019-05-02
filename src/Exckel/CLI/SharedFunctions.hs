@@ -10,16 +10,21 @@ module Exckel.CLI.SharedFunctions
 , linkRenameImages
 , popReplace
 , renumberExcitedStates
+, sortFiles
 ) where
 import           Control.Monad
+import           Data.Attoparsec.Text hiding (take)
 import           Data.Char
+import           Data.Either
 import           Data.List
-import           Data.List.Extra     hiding (splitOn)
+import           Data.List.Extra      hiding (splitOn)
 import           Data.List.Split
-import           Data.Map.Strict     (Map)
-import qualified Data.Map.Strict     as M
+import           Data.Map.Strict      (Map)
+import qualified Data.Map.Strict      as M
+import qualified Data.Text            as T
+import           Exckel.Parser
 import           Exckel.Types
-import           Lens.Micro.Platform hiding (to)
+import           Lens.Micro.Platform  hiding (to)
 import           System.Console.ANSI
 import           System.Directory
 import           System.FilePath
@@ -243,3 +248,12 @@ renumberExcitedStates rMap es = newStates
     oldStatesNumbers = map (^. nState) es
     newStatesNumbers = popReplace rMap oldStatesNumbers
     newStates = zipWith (\i s -> s & nState .~ i) newStatesNumbers es
+
+-- | Most flexible number based sort on arbitrary files i can think of. Tries to find all integers
+-- | in a file path and sorts based on them.
+sortFiles :: [FilePath] -> [FilePath]
+sortFiles fp =
+  let numbersFromFiles = map (parseOnly numbersInFileName) . map T.pack $ fp
+      numberedFiles = map (\(n, f) -> (fromRight [] n, f)) . filter (isRight . fst) $ zipWith (\f n -> (n, f)) fp numbersFromFiles
+      filesSorted = map snd $ sortOn fst numberedFiles
+  in  filesSorted
