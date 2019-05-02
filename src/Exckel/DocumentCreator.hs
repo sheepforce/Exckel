@@ -5,6 +5,7 @@ found in the filesystem and writes docx or odt summary documents.
 -}
 module Exckel.DocumentCreator
 ( excitationSummary
+, imageTable
 ) where
 import           Data.List.Split     (chunksOf)
 import qualified Data.Map.Strict     as M
@@ -167,3 +168,28 @@ excitationSummary fi es =
       ( eS' ^. nState
       , M.lookup (eS' ^. nState) (fi' ^. imageFiles . lens')
       )
+
+-- | Create a very simple table of images from files given as argument in nWidth columns.
+imageTable :: [FilePath] -> Int -> Pandoc
+imageTable files nWidth =
+  setTitle "Image Table" $ doc $
+    table
+      -- Title of the table
+      "Image Table"
+      -- Alignments of the columns
+      (replicate nWidth (AlignCenter, 1 / (fromIntegral nWidth)))
+      -- Headers of the columns
+      (replicate nWidth $ header 1 "")
+      -- Contents of the table
+      ( chunksOf nWidth $
+        map (\fp ->
+          para $ imageWith
+            ("", ["align-center"], [("width", show imageWidth ++ "cm")])
+            fp
+            ""
+            (text fp)
+        ) files
+      )
+  where
+    paragraphWidth = 17.0
+    imageWidth = (paragraphWidth / (fromIntegral nWidth))

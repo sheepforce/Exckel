@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Exckel.CLI.CLI
-( initialise
+( tabulate
+, initialise
 , getExcitedStates
 , plotSpectrum
 , calcOrbCubes
@@ -9,6 +10,7 @@ module Exckel.CLI.CLI
 , createSummaryDocument
 )
 where
+import Data.Char
 import           Data.Attoparsec.Text
 import qualified Data.ByteString.Char8            as BS
 import qualified Data.ByteString.Lazy.Char8       as BL
@@ -38,6 +40,37 @@ import           Text.Pandoc                      hiding (FileInfo, def,
                                                    getDataFileName)
 import qualified Text.Pandoc                      as PD (def)
 import           Text.Read
+
+-- | Worker for the tabulate mode of exckel (much simpler than exckel run for excited states).
+tabulate :: ExckelArgs -> IO ()
+tabulate args = do
+
+   -- Get parametres for document creation
+  imagesInDir <- filter (\i ->
+      let ext = map toLower $ takeExtension i
+      in  ext == ".png" ||
+          ext == ".jpg" ||
+          ext == ".jpeg"
+    ) <$> (listDirectory $ filePath args)
+  let sortedFiles = sortFiles imagesInDir
+      imageWidth = width args
+      -- Create a pandoc document
+      table = imageTable sortedFiles imageWidth
+
+  -- Write reference docx document
+  BS.writeFile "panref.tmp" defaultDocx
+  let docxReference = Just "panref.tmp"
+
+  -- Create the table and write it to file.
+  tableDoc <- runIO $ do
+    writeDocx PD.def {writerReferenceDoc = docxReference} table
+  case tableDoc of
+    Left err  -> errMessage $ "Error occured during generation of the pandoc table:" ++ show err
+    Right doc -> do
+      logInfo "Writing document to \"table.docx\"."
+      BL.writeFile "table.docx" doc
+
+
 
 -- | Entry point for the executable. Get command line arguments with defaults and call for check and
 -- | from within the check possibly for other routines.

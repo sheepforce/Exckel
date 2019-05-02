@@ -9,6 +9,7 @@ module Exckel.Parser
 , cube
 , vmdState
 , vmdRC
+, numbersInFileName
 ) where
 import           Control.Applicative
 import qualified Data.Array.Repa      as R
@@ -498,3 +499,13 @@ vmdRC = do
   _ <- manyTill anyChar (string "after idle {")
   helpfulContent <- T.pack <$> manyTill anyChar (string "# </custom>")
   return helpfulContent
+
+-- | Given a filename, take all numbers in the filename and put them in a list. Make sure its only
+-- | the filename, not the complete path
+numbersInFileName :: Parser [Int]
+numbersInFileName = do
+  numbers <- many' $ do
+    _ <- takeWhile (notInClass "1234567890")
+    n <- decimal
+    return n
+  return numbers

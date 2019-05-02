@@ -9,43 +9,50 @@ program.
 module Exckel.CmdArgs
 ( ExckelArgs(..)
 , exckelArgs
+, tabulateArgs
 )
 where
 import           System.Console.CmdArgs
 import           System.Directory
 import           System.IO.Unsafe
 
-data ExckelArgs = ExckelArgs
-  { nocalcorbs     :: Bool
-  , nocalccdds     :: Bool
-  , norenderimages :: Bool
-  , outdir         :: FilePath
-  , vmd            :: Maybe FilePath
-  , vmdState       :: Maybe FilePath
-  , vmdStartUp     :: Maybe FilePath
-  , vmdTemplate    :: Maybe FilePath
-  , multiwfn       :: Maybe FilePath
-  , cddcalculator  :: String
-  , tachyon        :: Maybe FilePath
-  , panFormat      :: String
-  , panref         :: Maybe FilePath
-  , wf             :: Maybe FilePath
-  , exc            :: Maybe FilePath
-  , imgres         :: (Int, Int)
-  , s2Filter       :: Maybe Double
-  , foscFilter     :: Maybe Double
-  , fwhm           :: Maybe Double
-  , weightfilter   :: Double
-  , energyfilter   :: Maybe (Double, Double)
-  , states         :: Maybe String
-  , calcsoftware   :: String
-  , calctype       :: String
-  , spectrum       :: String
-  , renumberStates :: Bool
-  } deriving (Show, Data, Typeable)
+data ExckelArgs =
+    Exckel
+      { nocalcorbs     :: Bool
+      , nocalccdds     :: Bool
+      , norenderimages :: Bool
+      , outdir         :: FilePath
+      , vmd            :: Maybe FilePath
+      , vmdState       :: Maybe FilePath
+      , vmdStartUp     :: Maybe FilePath
+      , vmdTemplate    :: Maybe FilePath
+      , multiwfn       :: Maybe FilePath
+      , cddcalculator  :: String
+      , tachyon        :: Maybe FilePath
+      , panFormat      :: String
+      , panref         :: Maybe FilePath
+      , wf             :: Maybe FilePath
+      , exc            :: Maybe FilePath
+      , imgres         :: (Int, Int)
+      , s2Filter       :: Maybe Double
+      , foscFilter     :: Maybe Double
+      , fwhm           :: Maybe Double
+      , weightfilter   :: Double
+      , energyfilter   :: Maybe (Double, Double)
+      , states         :: Maybe String
+      , calcsoftware   :: String
+      , calctype       :: String
+      , spectrum       :: String
+      , renumberStates :: Bool
+      }
+  | Tabulate
+      { filePath :: FilePath
+      , width    :: Int
+      }
+  deriving (Show, Data, Typeable)
 
 exckelArgs :: ExckelArgs
-exckelArgs = ExckelArgs
+exckelArgs = Exckel
   { nocalcorbs      =  False
                    &= help "Do not calculate cubes for orbitals."
                    &= typ "BOOL"
@@ -149,5 +156,16 @@ exckelArgs = ExckelArgs
   , renumberStates =  False
                    &= help "Renumber the states (energy order), after high spin multiplicities have been removed by \"--s2filter\"."
                    &= typ "BOOL"
-  } &= summary "The Exckel automatic summary programm"
-    &= help "Available command line arguments. At least \"--wf\" and \"--exc\" must be specified."
+  } -- &= summary "The Exckel automatic summary programm for excited states."
+    -- &= help "Available command line arguments. At least \"--wf\" and \"--exc\" must be specified."
+
+tabulateArgs :: ExckelArgs
+tabulateArgs = Tabulate
+  { filePath = ""
+             &= help "A path pointing to the directory with the files to tabulate."
+             &= typ "DIRECTORY"
+
+  , width    =  5
+             &= help "Number of images per column."
+             &= typ "INT"
+  } -- &= summary "Automatically tabulating data."
