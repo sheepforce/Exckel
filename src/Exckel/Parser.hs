@@ -6,6 +6,7 @@ module Exckel.Parser
 ( gaussianLogTDDFT
 , nwchemTDDFT
 , mrccADC
+, orcaTDDFT
 , cube
 , vmdState
 , vmdRC
@@ -21,6 +22,7 @@ import           Exckel.ExcUtils
 import           Exckel.Types
 import           Lens.Micro.Platform
 import           Prelude              hiding (takeWhile)
+import Debug.Trace
 
 -- | From the whole Gaussian TDDFT output, parse all single excited state and skip over all other
 -- | parts
@@ -373,6 +375,115 @@ mrccADC = do
   return correctADC2states
   where
     compareExcState a b = (a ^. relEnergy) `compare` (b ^. relEnergy)
+
+-- | Parse the ORCA output for TDDFT calculations.
+orcaTDDFT :: Parser [ExcState]
+orcaTDDFT = do
+  -- Number of orbitals
+  _ <- manyTill anyChar (string "# of contracted basis functions         ...")
+  _ <- takeWhile isHorizontalSpace
+  nBasisFunctions' <- decimal
+  traceM $ "Parsed number of orbitals as " ++ show nBasisFunctions'
+  -- Multiplicity
+  _ <- manyTill anyChar (string "Multiplicity           Mult            ....")
+  _ <- takeWhile isHorizontalSpace
+  multiplicity' <- decimal
+  traceM $ "Parsed multiplicity to be " ++ show multiplicity'
+  -- wavefunction type
+  _ <- manyTill anyChar (string "Reference state                ...")
+  _ <- takeWhile isHorizontalSpace
+  wfString <- string "RHF" <|> string "UHF"
+  let wfType' = case wfString of
+        "RHF" -> Just ClosedShell
+        "UHF" -> Just OpenShell
+        _     -> Nothing
+  traceM $ "Parsed wavefunction type to be " ++ show wfType'
+  -- Skip to the excited state block, so that no other "STATE" cards are found
+  _ <- manyTill anyChar (string "TD-DFT/TDA EXCITED STATES")
+  -- parse all excited state blocks. In ORCA no oscillator strength are given here.
+  statesNoOscStrength' <- many1 $ do
+    -- begin of an excitation block
+    _ <- manyTill anyChar (string "STATE")
+    traceM $ "Found state card"
+    -- number of the excited state
+    _ <- takeWhile isHorizontalSpace
+    nState' <- decimal
+    traceM $ "Current state is " ++ show nState'
+    -- energy of the excited state
+    _ <- char ':'
+    _ <- takeWhile isHorizontalSpace
+    _ <- char 'E'
+    _ <- char '='
+    _ <- takeWhile isHorizontalSpace
+    relEnergy' <- double
+    _ <- manyTill anyChar endOfLine
+    traceM $ "Energy of the state is " ++ show relEnergy'
+    -- CI determinant block
+    ciWavefunction' <- many1' $ do
+      _ <- takeWhile isHorizontalSpace
+      fromOrbI' <- decimal
+      fromOrbS' <- option Nothing (Just <$> (char 'a' <|> char 'b'))
+      _ <- takeWhile isHorizontalSpace
+      _ <- string "->"
+      _ <- takeWhile isHorizontalSpace
+      toOrbI' <- decimal
+      toOrbS' <- option Nothing (Just <$> (char 'a' <|> char 'b'))
+      _ <- takeWhile isHorizontalSpace
+      _ <- char ':'
+      _ <- takeWhile isHorizontalSpace
+      weight' <- double
+      _ <- takeWhile (not <$> isEndOfLine)
+      endOfLine
+      let (spinFrom', spinTo') = case (fromOrbS', toOrbS') of
+            (Nothing, Nothing)   -> (Nothing, Nothing)
+            (Just 'a', Just 'a') -> (Just Alpha, Just Alpha)
+            (Just 'b', Just 'b') -> (Just Beta, Just Beta)
+            _                    -> (Nothing, Nothing)
+      return CIDeterminant
+        { _excitationPairs =
+            [ OrbitalExcitation
+                { _fromOrb = (fromOrbI', spinFrom')
+                , _toOrb   = (toOrbI', spinTo')
+                }
+            ]
+        , _weight = weight'
+        }
+    return ExcState
+      { _nState             = nState'
+      , _multiplicity       = multiplicity'
+      , _wfType             = wfType'
+      , _s2                 = Nothing
+      , _oscillatorStrength = undefined
+      , _relEnergy          = relEnergy'
+      , _ciWavefunction     = V.fromList ciWavefunction'
+      , _nBasisFunctions    = nBasisFunctions'
+      }
+  -- Now go to the spectrum table and parse the oscillator strength from there
+  _ <- manyTill anyChar (string "ABSORPTION SPECTRUM VIA TRANSITION ELECTRIC DIPOLE MOMENTS")
+  skipSpace
+  _ <- string "-----------------------------------------------------------------------------"
+  endOfLine
+  _ <- string "State   Energy    Wavelength  fosc         T2        TX        TY        TZ  "
+  endOfLine
+  _ <- string "        (cm-1)      (nm)                 (au**2)    (au)      (au)      (au) "
+  endOfLine
+  _ <- string "-----------------------------------------------------------------------------"
+  endOfLine
+  oscillatorStrengths' <- count (length statesNoOscStrength') $ do
+    _ <- takeWhile isHorizontalSpace
+    _stateNumber <- decimal
+    _ <- takeWhile isHorizontalSpace
+    _energyCM <- double
+    _ <- takeWhile isHorizontalSpace
+    _waveLength <- double
+    _ <- takeWhile isHorizontalSpace
+    oscStrength' <- double
+    _ <- manyTill anyChar endOfLine
+    return oscStrength'
+  let statesWithOscillatorStrenghts = zipWith (\osc state -> state & oscillatorStrength .~ osc)
+        oscillatorStrengths'
+        statesNoOscStrength'
+  return statesWithOscillatorStrenghts
 
 -- | Parse a Gaussian cube file. Takes care of Angstrom Bohr conversion.
 cube :: Parser Cube
