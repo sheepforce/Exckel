@@ -142,7 +142,7 @@ exckelArgs = Exckel
                    &= typ "[INT]"
 
   , calcsoftware   =  "gaussian"
-                   &= help "Calculation software, that produced the output file. [gaussian | nwchem | mrcc]"
+                   &= help "Calculation software, that produced the output file. [gaussian | nwchem | mrcc | orca]"
                    &= typ "STRING"
 
   , spectrum       =  "spectrify"

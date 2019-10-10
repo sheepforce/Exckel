@@ -118,6 +118,9 @@ initialise args = do
         "mrcc"     -> MRCC
           { _calcType = calcType'
           }
+        "orca"     -> ORCA
+          { _calcType = calcType'
+          }
         _          -> Gaussian
           { _calcType = calcType'
           }
@@ -370,6 +373,11 @@ getExcitedStates fi = do
               , _redCost = _
               }
           } -> parseOnly mrccADC logFile'
+        ORCA
+          { _calcType = TDDFT
+              { _fullTDDFT = False
+              }
+          } -> parseOnly orcaTDDFT logFile'
         _   -> parseOnly gaussianLogTDDFT logFile'
   excitedStatesAll <- case excitedStatesParse of
     Left err        -> do
