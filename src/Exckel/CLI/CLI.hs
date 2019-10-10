@@ -375,7 +375,7 @@ getExcitedStates fi = do
           } -> parseOnly mrccADC logFile'
         ORCA
           { _calcType = TDDFT
-              { _fullTDDFT = False
+              { _fullTDDFT = _
               }
           } -> parseOnly orcaTDDFT logFile'
         _   -> parseOnly gaussianLogTDDFT logFile'

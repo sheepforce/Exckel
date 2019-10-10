@@ -22,7 +22,6 @@ import           Exckel.ExcUtils
 import           Exckel.Types
 import           Lens.Micro.Platform
 import           Prelude              hiding (takeWhile)
-import Debug.Trace
 
 -- | From the whole Gaussian TDDFT output, parse all single excited state and skip over all other
 -- | parts
@@ -383,12 +382,10 @@ orcaTDDFT = do
   _ <- manyTill anyChar (string "# of contracted basis functions         ...")
   _ <- takeWhile isHorizontalSpace
   nBasisFunctions' <- decimal
-  traceM $ "Parsed number of orbitals as " ++ show nBasisFunctions'
   -- Multiplicity
   _ <- manyTill anyChar (string "Multiplicity           Mult            ....")
   _ <- takeWhile isHorizontalSpace
   multiplicity' <- decimal
-  traceM $ "Parsed multiplicity to be " ++ show multiplicity'
   -- wavefunction type
   _ <- manyTill anyChar (string "Reference state                ...")
   _ <- takeWhile isHorizontalSpace
@@ -397,18 +394,15 @@ orcaTDDFT = do
         "RHF" -> Just ClosedShell
         "UHF" -> Just OpenShell
         _     -> Nothing
-  traceM $ "Parsed wavefunction type to be " ++ show wfType'
   -- Skip to the excited state block, so that no other "STATE" cards are found
   _ <- manyTill anyChar (string "TD-DFT/TDA EXCITED STATES")
   -- parse all excited state blocks. In ORCA no oscillator strength are given here.
   statesNoOscStrength' <- many1 $ do
     -- begin of an excitation block
     _ <- manyTill anyChar (string "STATE")
-    traceM $ "Found state card"
     -- number of the excited state
     _ <- takeWhile isHorizontalSpace
     nState' <- decimal
-    traceM $ "Current state is " ++ show nState'
     -- energy of the excited state
     _ <- char ':'
     _ <- takeWhile isHorizontalSpace
@@ -417,7 +411,6 @@ orcaTDDFT = do
     _ <- takeWhile isHorizontalSpace
     relEnergy' <- double
     _ <- manyTill anyChar endOfLine
-    traceM $ "Energy of the state is " ++ show relEnergy'
     -- CI determinant block
     ciWavefunction' <- many1' $ do
       _ <- takeWhile isHorizontalSpace
