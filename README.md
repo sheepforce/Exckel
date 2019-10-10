@@ -13,6 +13,8 @@ Exckel is completely written in Haskell, but basically it glues together existin
 - *Quantum chemistry software supported:*
   - [Gaussian](gaussian.com) TDDFT/CIS (requires `#p`)
   - [NWChem](http://www.nwchem-sw.org/index.php/Main_Page) TDDFT/RPA
+  - [MRCC](https://www.mrcc.hu/) ADC(2)
+  - [ORCA](https://orcaforum.kofo.mpg.de/index.php) TDDFT
 - *Cube calculator:*
   - [Multiwfn](http://sobereva.com/multiwfn/) (tested with 3.5, gMultiwfn 3.4.1)
   - [REPA] (http://hackage.haskell.org/package/repa) (only CDDs from existing orbital cubes)
@@ -21,63 +23,67 @@ Exckel is completely written in Haskell, but basically it glues together existin
 
 
 ## Usage
-Exckel is a command line programm and can be easily called from a bash script or simply directly from the command line. The minimum input you will need is the output file from your quantum chemistry code and a wavefunction file (molden or fchk).
+Exckel is a command line program and can be easily called from a bash script or simply directly from the command line. The minimum input you will need is the output file from your quantum chemistry code and a wavefunction file (molden or fchk).
 
-By calling `exckel --help`, a quick explanation of all possible keywords is provided.
+By calling `exckel exckel --help`, a quick explanation of all possible keywords is provided.
 
-    exckelargs [OPTIONS]
-      Available command line arguments. At least "--wf" and "--exc" must be
-      specified.
-    
+    The exckelargs program
+
+    exckelargs exckel [OPTIONS]
+
+    Flags:
+       --nocalcorbs                Do not calculate cubes for orbitals.
+       --nocalccdds                Do not calculate charge density difference
+                                   cubes.
+       --norenderimages            Do not render images from cubes.
+    -o --outdir=DIR                Destination for all output files and
+                                   existing cubes.
+       --vmd=FILE                  VMD executable. Default is first vmd
+                                   executable found on system.
+       --vmdstate=FILE             VMD visualisation state file. Used to
+                                   determine perspective.
+       --vmdstartup=FILE           VMD script to set up general look. If none
+                                   is specified, it will default to your vmdrc.
+       --vmdtemplate=FILE          VMD template script for plotting.
+    -m --multiwfn=FILE             Multiwfn executable. Default is first
+                                   Multiwfn executable found on system
+       --cddcalculator=STRING      Program to use to calculate charge density
+                                   differnces. [multiwfn | repa]
+    -t --tachyon=FILE              Tachyon executable. Default is first tachyon
+                                   executable found on system
+       --panformat=STRING          Format of the summary to write with Pandoc.
+                                   Any of [docx | odt | latex]
+       --panref=FILE               Reference docx with formatting hints.
+       --wf=FILE                   Wavefunction file (molden or fchk).
+       --exc=FILE                  Quantum chemistry software output file with
+                                   excited state informations.
+    -i --imgres=INT,INT            Image width x heigth for plotting of cubes.
+       --s2filter=FLOAT            Filter excited states by contributions of
+                                   next higher spin state (applies to plotting
+                                   and summary).
+       --foscfilter=FLOAT          Filter excited states by minimum oscillator
+                                   strength (applies only to summary document).
+       --fwhm=FLOAT                Full width at half maximum of the gaussian
+                                   function used to convolute the stick spectrum
+                                   in electron volt.
+       --weightfilter=FLOAT        Minimum weight of an excitation to write to
+                                   the summary. (default 0.01)
+       --energyfilter=FLOAT,FLOAT  Energy range (eV) of the excited states of
+                                   interest and plot range for spectrum.
+       --states=[INT]              Plot specific states and ignore all other
+                                   criteria in the summary. Give as "[a,b,c]"
+       --calcsoftware=STRING       Calculation software, that produced the
+                                   output file. [gaussian | nwchem | mrcc | orca]
+       --calctype=STRING           Calculation type. [tddft | rc-adc2 (reduced
+                                   cost ADC(2))]
+       --spectrum=STRING           Program to plot the spectrum. [gnuplot |
+                                   spectrify]
+    -r --renumberstates            Renumber the states (energy order), after
+                                 high spin multiplicities have been removed by
+                                 "--s2filter".
     Common flags:
-         --nocalcorbs                Do not calculate cubes for orbitals.                                                                                                                                                                                                          
-         --nocalccdds                Do not calculate charge density difference                                                                                                                                                                                                    
-                                     cubes.                                                                                                                                                                                                                                        
-         --norenderimages            Do not render images from cubes.                                                                                                                                                                                                              
-      -o --outdir=DIR                Destination for all output files and                                                                                                                                                                                                          
-                                     existing cubes.                                                                                                                                                                                                                               
-         --vmd=FILE                  VMD executable. Default is first vmd                                                                                                                                                                                                          
-                                     executable found on system.                                                                                                                                                                                                                   
-         --vmdstate=FILE             VMD visualisation state file. Used to                                                                                                                                                                                                         
-                                     determine perspective.                                                                                                                                                                                                                        
-         --vmdstartup=FILE           VMD script to set up general look. If none                                                                                                                                                                                                    
-                                     is specified, it will default to your vmdrc.                                                                                                                                                                                                  
-         --vmdtemplate=FILE          VMD template script for plotting.                                                                                                                                                                                                             
-      -m --multiwfn=FILE             Multiwfn executable. Default is first                                                                                                                                                                                                         
-                                     Multiwfn executable found on system                                                                                                                                                                                                           
-         --cddcalculator=STRING      Program to use to calculate charge density                                                                                                                                                                                                    
-                                     differnces. [multiwfn | repa]                                                                                                                                                                                                                 
-      -t --tachyon=FILE              Tachyon executable. Default is first tachyon                                                                                                                                                                                                  
-                                     executable found on system                                                                                                                                                                                                                    
-         --panformat=STRING          Format of the summary to write with Pandoc.                                                                                                                                                                                                   
-                                     Any of [docx | odt | latex]                                                                                                                                                                                                                   
-         --panref=FILE               Reference docx with formatting hints.                                                                                                                                                                                                         
-         --wf=FILE                   Wavefunction file (molden or fchk).                                                                                                                                                                                                           
-         --exc=FILE                  Quantum chemistry software output file with                                                                                                                                                                                                   
-                                     excited state informations.                                                                                                                                                                                                                   
-      -i --imgres=INT,INT            Image width x heigth for plotting of cubes.                                                                                                                                                                                                   
-         --s2filter=FLOAT            Filter excited states by contributions of                                                                                                                                                                                                     
-                                     next higher spin state (applies to plotting                                                                                                                                                                                                   
-                                     and summary).
-         --foscfilter=FLOAT          Filter excited states by minimum oscillator
-                                     strength (applies only to summary document).
-         --fwhm=FLOAT                Full width at half maximum of the gaussian
-                                     function used to convolute the stick spectrum
-                                     in electron volt.
-         --weightfilter=FLOAT        Minimum weight of an excitation to write to
-                                     the summary. (default 0.01)
-         --energyfilter=FLOAT,FLOAT  Energy range (eV) of the excited states of
-                                     interest and plot range for spectrum.
-         --states=[INT]              Plot specific states and ignore all other
-                                     criteria in the summary. Give as "[a,b,c]"
-         --calcsoftware=STRING       Calculation software, that produced the
-                                     output file. [gaussian | nwchem | mrcc]
-         --calctype=STRING           Calculation type. [tddft | rc-adc2 (reduced
-                                     cost ADC(2))]
-         --spectrum=STRING           Program to plot the spectrum. [gnuplot |
-                                     spectrify]
-      -? --help                      Display help message
-      -V --version                   Print version information
+    -? --help                      Display help message
+    -V --version                   Print version information      Print version information
 
 
 At least `--wf` and `--exc` must be set and point to your wavefunction file respective your quantum chemistry output file (with excited state information).
@@ -85,6 +91,8 @@ At least `--wf` and `--exc` must be set and point to your wavefunction file resp
 The destination of the output (and intermediate files) is determined by `--outdir`, which points to the path, where output shall be written. Next to writing all files to this directory, Exckel will look for potentially already existing files (such as images and cubes) in this directory. If not set, it defaults to the current directory.
 
 An explanation of the workflow and the effects of the parameters follows.
+
+_Note:_ There is an alternative to calling `exckel exckel`, namely `exckel tabulate`, which provides other parameters but is only meant for creating table documents of many images but has nothing to do with excited state analysis.
 
 ### Parsing, Plotting and Filtering
 *Relevant arguments:*
@@ -105,7 +113,7 @@ If you use a very verbose output (small coefficients printed), you can restrict 
 
 Gnuplot is then used to plot the spectrum (remaining states after `--s2filter` and within `--energyfilter` (in eV)) and save it to `Spectrum.png` in the output directory. A convolution of the stick spectrum is done by gaussian functions, for which the full width at half maximum can be specified with `--fwhm` (in electron Volt).
 
-If you want to plot specific states, which can not be accessed otherwise (because they are dark for excample), you can use the `--states` option. It will select only the states specified for cube generation and in the table summary but not touch the other filtering options, which are now only applied for plotting of the spectrum.
+If you want to plot specific states, which can not be accessed otherwise (because they are dark for example), you can use the `--states` option. It will select only the states specified for cube generation and in the table summary but not touch the other filtering options, which are now only applied for plotting of the spectrum.
 
 ### Calculating Cubes
 *Relevant arguments:*
@@ -160,7 +168,7 @@ The finaly summary is written to the output directoy as `summary.*`.
 ### Example
 For a Gaussian calculation of benzene, where you have `Benzen.fchk` as the wavefunction and `Benzen.log` as the log file of the calculation and want to write a summary for all excited states with an oscillator strength > 0.1 as a docx.
 
-    exckel --wf=Benzen.fchk --exc=Benzen.log --outdir=exckel-out --foscfilter=0.1 --panformat=docx
+    exckel exckel --wf=Benzen.fchk --exc=Benzen.log --outdir=exckel-out --foscfilter=0.1 --panformat=docx
 
 
 ## Installation
