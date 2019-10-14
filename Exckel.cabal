@@ -1,13 +1,13 @@
 cabal-version: 1.12
 
--- This file has been generated from package.yaml by hpack version 0.31.1.
+-- This file has been generated from package.yaml by hpack version 0.31.2.
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: 28626f27ad05889751822e89a49addee0c12582a711b3994880da439c2f23fc5
+-- hash: a76083559c79ab3597ea21bd4a298687be17f383c9c9f84a1fcd50d31864dd31
 
 name:           Exckel
-version:        0.4.0.0
+version:        0.5.0.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/Exckel#readme>
 homepage:       https://github.com/sheepforce/Exckel#readme
 bug-reports:    https://github.com/sheepforce/Exckel/issues
