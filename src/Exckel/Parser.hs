@@ -414,12 +414,12 @@ orcaTDDFT = do
     -- CI determinant block
     ciWavefunction' <- many1' $ do
       _ <- takeWhile isHorizontalSpace
-      fromOrbI' <- decimal
+      fromOrbI' <- (+ 1) <$> decimal
       fromOrbS' <- option Nothing (Just <$> (char 'a' <|> char 'b'))
       _ <- takeWhile isHorizontalSpace
       _ <- string "->"
       _ <- takeWhile isHorizontalSpace
-      toOrbI' <- decimal
+      toOrbI' <- (+ 1) <$> decimal
       toOrbS' <- option Nothing (Just <$> (char 'a' <|> char 'b'))
       _ <- takeWhile isHorizontalSpace
       _ <- char ':'

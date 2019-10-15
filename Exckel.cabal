@@ -4,10 +4,10 @@ cabal-version: 1.12
 --
 -- see: https://github.com/sol/hpack
 --
--- hash: a76083559c79ab3597ea21bd4a298687be17f383c9c9f84a1fcd50d31864dd31
+-- hash: 548bcff919a40461ad48819f5312495076b027cd08872faa174e08cc3bcdb8d5
 
 name:           Exckel
-version:        0.5.0.0
+version:        0.5.1.0
 description:    Please see the README on GitHub at <https://github.com/githubuser/Exckel#readme>
 homepage:       https://github.com/sheepforce/Exckel#readme
 bug-reports:    https://github.com/sheepforce/Exckel/issues
