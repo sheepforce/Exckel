@@ -427,11 +427,13 @@ orcaTDDFT = do
       weight' <- double
       _ <- takeWhile (not <$> isEndOfLine)
       endOfLine
-      let (spinFrom', spinTo') = case (fromOrbS', toOrbS') of
-            (Nothing, Nothing)   -> (Nothing, Nothing)
-            (Just 'a', Just 'a') -> (Just Alpha, Just Alpha)
-            (Just 'b', Just 'b') -> (Just Beta, Just Beta)
-            _                    -> (Nothing, Nothing)
+      let (spinFrom', spinTo') = case wfType' of
+            Just ClosedShell -> (Nothing, Nothing)
+            _                -> case (fromOrbS', toOrbS') of
+                                  (Nothing, Nothing)   -> (Nothing, Nothing)
+                                  (Just 'a', Just 'a') -> (Just Alpha, Just Alpha)
+                                  (Just 'b', Just 'b') -> (Just Beta, Just Beta)
+                                  _                    -> (Nothing, Nothing)
       return CIDeterminant
         { _excitationPairs =
             [ OrbitalExcitation
